@@ -37,17 +37,17 @@ def get_beijing_time():
     # 测试模式
     # =====================
 
-    return datetime(
-        2026,
-        7,
-        24,
-        tzinfo=beijing
-    )
+   # return datetime(
+        #2026,
+        #7,
+       # 24,
+       # tzinfo=beijing
+    #)
 
 
     # 正式运行打开下面
     #
-    # return datetime.now(beijing)
+     return datetime.now(beijing)
 
 
 
