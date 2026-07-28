@@ -1,53 +1,46 @@
 import re
-import shutil
-
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-import fitz  # PyMuPDF
-
+import fitz
 
 
 # =====================
-# 基础路径
+# 路径
 # =====================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 PDF_PATH = BASE_DIR / "山图集.pdf"
 
-OUTPUT_DIR = BASE_DIR / "result"
 
-# 历史目录
-HISTORY_DIR = OUTPUT_DIR / "history"
+RESULT_DIR = BASE_DIR / "result"
 
 
+HISTORY_DIR = BASE_DIR / "history"
 
 
 
 # =====================
-# 获取北京时间
+# 北京时间
 # =====================
 
 def get_beijing_time():
 
-    beijing = timezone(
-        timedelta(hours=8)
+    return datetime.now(
+        timezone(timedelta(hours=8))
     )
 
-    return datetime.now(beijing)
-
-
-
 
 
 # =====================
-# 初始化目录
+# 初始化
 # =====================
 
-def init_output():
+def init_dir():
 
-    OUTPUT_DIR.mkdir(
+    RESULT_DIR.mkdir(
         exist_ok=True
     )
 
@@ -57,21 +50,15 @@ def init_output():
 
 
 
-
-
 # =====================
 # 日期匹配
 # =====================
 
 def build_date_regex(month, day):
 
-    pattern = (
+    return re.compile(
         rf"{month}\s*月\s*{day}\s*日"
     )
-
-    return re.compile(pattern)
-
-
 
 
 
@@ -79,10 +66,10 @@ def build_date_regex(month, day):
 # 搜索PDF
 # =====================
 
-def search_pdf(date_regex, month, day, save_dir):
+def search_pdf(regex, save_dir, month, day):
 
 
-    result_images = []
+    images=[]
 
 
     doc = fitz.open(
@@ -90,13 +77,13 @@ def search_pdf(date_regex, month, day, save_dir):
     )
 
 
-    for page_index, page in enumerate(doc):
+    for index,page in enumerate(doc):
 
 
         text = page.get_text()
 
 
-        clean_text = re.sub(
+        clean = re.sub(
             r"\s+",
             "",
             text
@@ -104,15 +91,15 @@ def search_pdf(date_regex, month, day, save_dir):
 
 
         if (
-            date_regex.search(text)
+            regex.search(text)
             or
-            date_regex.search(clean_text)
+            regex.search(clean)
         ):
 
 
             print(
-                "找到日期页面:",
-                page_index + 1
+                "找到页面:",
+                index+1
             )
 
 
@@ -121,41 +108,27 @@ def search_pdf(date_regex, month, day, save_dir):
             )
 
 
-            image_name = (
+            name = (
                 f"shantu-{month:02d}-{day:02d}"
-                f"-page-{page_index+1}.jpg"
-            )
-
-
-            image_path = (
-                save_dir /
-                image_name
+                f"-page-{index+1}.jpg"
             )
 
 
             pix.save(
-                str(image_path)
+                str(
+                    save_dir/name
+                )
             )
 
 
-            result_images.append(
-                image_name
-            )
-
-
-            print(
-                "生成图片:",
-                image_name
-            )
+            images.append(name)
 
 
 
     doc.close()
 
 
-    return result_images
-
-
+    return images
 
 
 
@@ -163,17 +136,14 @@ def search_pdf(date_regex, month, day, save_dir):
 # 生成HTML
 # =====================
 
-def create_html(month, day, images, image_path):
+def create_html(
+    path,
+    title,
+    images
+):
 
 
-    now = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-
-
-    html = f"""
-<!DOCTYPE html>
-
+    html=f"""
 <html>
 
 <head>
@@ -181,81 +151,42 @@ def create_html(month, day, images, image_path):
 <meta charset="utf-8">
 
 <meta name="viewport"
-content="width=device-width, initial-scale=1">
+content="width=device-width,initial-scale=1">
 
 
-<title>
-🌄 山图集 {month}月{day}日
-</title>
+<title>{title}</title>
 
 
 <style>
 
-body {{
-
-margin:0;
-padding:20px;
+body{{
 background:#f5f5f5;
-font-family:
--apple-system,
-BlinkMacSystemFont,
-"Microsoft YaHei",
-Arial;
-
+font-family:Microsoft YaHei;
+padding:20px;
 }}
 
-
-
-.container {{
-
+.box{{
 max-width:900px;
 margin:auto;
 background:white;
 padding:25px;
 border-radius:16px;
-
-box-shadow:
-0 4px 20px rgba(0,0,0,.08);
-
 }}
 
 
-
-h1 {{
-
+h1{{
 text-align:center;
-font-size:32px;
-
 }}
 
 
-
-.info {{
-
-text-align:center;
-color:#888;
-line-height:1.8;
-
-}}
-
-
-
-img {{
-
+img{{
 width:100%;
-border-radius:12px;
 margin-top:30px;
-
+border-radius:12px;
 }}
 
-
-
-.footer {{
-
-text-align:center;
-color:#999;
-margin-top:30px;
-
+a{{
+text-decoration:none;
 }}
 
 </style>
@@ -267,90 +198,116 @@ margin-top:30px;
 <body>
 
 
-<div class="container">
+<div class="box">
 
 
 <h1>
-🌄 山图集 {month}月{day}日
+{title}
 </h1>
-
-
-
-<div class="info">
-
-图片数量：
-{len(images)} 张
-
-<br>
-
-生成时间：
-{now}
-
-<br>
-
-来源：
-山图集.pdf
-
-
-</div>
 
 """
 
 
     for img in images:
 
+        html+=f"""
 
-        # 历史图片路径
-
-        html += f"""
-
-<img
-
-src="./history/{month:02d}-{day:02d}/{img}"
-
-loading="lazy"
-
->
-
+<img src="./{img}">
 
 """
 
 
-    html += """
-
-<div class="footer">
-
-GitHub Actions 自动生成
-
-</div>
+    html+="""
 
 
 </div>
-
 
 </body>
-
 
 </html>
 
 """
 
 
-    index_file = (
-        OUTPUT_DIR /
-        "index.html"
-    )
-
-
-    index_file.write_text(
+    path.write_text(
         html,
         encoding="utf-8"
     )
 
 
-    return index_file
+
+# =====================
+# 历史首页
+# =====================
+
+def create_history_index():
 
 
+    items=[]
+
+
+    for d in sorted(
+        HISTORY_DIR.iterdir(),
+        reverse=True
+    ):
+
+
+        if d.is_dir():
+
+            items.append(
+                f"""
+<li>
+<a href="./{d.name}/">
+{d.name}
+</a>
+</li>
+"""
+            )
+
+
+
+    html=f"""
+
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<title>
+山图集历史
+</title>
+
+
+</head>
+
+
+<body>
+
+
+<h1>
+🌄 山图集历史
+</h1>
+
+
+<ul>
+
+{"".join(items)}
+
+</ul>
+
+
+</body>
+
+</html>
+
+"""
+
+
+    (HISTORY_DIR/"index.html").write_text(
+        html,
+        encoding="utf-8"
+    )
 
 
 
@@ -361,61 +318,35 @@ GitHub Actions 自动生成
 def main():
 
 
-    today = get_beijing_time()
+    init_dir()
 
 
-    month = today.month
-
-    day = today.day
+    today=get_beijing_time()
 
 
-    print("================")
+    year=today.year
+    month=today.month
+    day=today.day
+
+
 
     print(
         "日期:",
-        month,
-        "月",
-        day,
-        "日"
+        today
     )
 
-    print("================")
 
 
-
-    if not PDF_PATH.exists():
-
-        raise FileNotFoundError(
-            f"找不到PDF:{PDF_PATH}"
-        )
-
-
-
-    # 初始化目录
-
-    init_output()
-
-
-
-    regex = build_date_regex(
+    regex=build_date_regex(
         month,
         day
     )
 
 
 
-    print(
-        "匹配:",
-        regex.pattern
-    )
-
-
-
-    # 今日历史目录
-
     today_dir = (
         HISTORY_DIR /
-        f"{month:02d}-{day:02d}"
+        f"{year}-{month:02d}-{day:02d}"
     )
 
 
@@ -425,31 +356,19 @@ def main():
 
 
 
-    images = search_pdf(
+    images=search_pdf(
         regex,
+        today_dir,
         month,
-        day,
-        today_dir
+        day
     )
 
 
 
-
-
-    # =====================
-    # 没找到
-    # =====================
-
     if not images:
 
-
         print(
-            "今天没有找到图片"
-        )
-
-
-        print(
-            "保留历史页面"
+            "今天没有图片"
         )
 
 
@@ -457,53 +376,46 @@ def main():
 
 
 
-
-
-    # =====================
-    # 找到
-    # =====================
-
+    # 今日页面
 
     create_html(
-        month,
-        day,
-        images,
-        today_dir
+        today_dir/"index.html",
+        f"🌄 山图集 {month}月{day}日",
+        images
     )
+
+
+
+    # 首页复制
+
+    create_html(
+        RESULT_DIR/"index.html",
+        f"🌄 山图集 {month}月{day}日",
+        images
+    )
+
+
+
+    # 历史入口
+
+    create_history_index()
 
 
 
     # 状态
 
-    status = (
-        OUTPUT_DIR /
-        "status.txt"
-    )
-
-
-    status.write_text(
+    (RESULT_DIR/"status.txt").write_text(
         "FOUND",
         encoding="utf-8"
     )
 
 
-
-    print("================")
-
     print(
         "完成"
     )
 
-    print(
-        images
-    )
-
-    print("================")
 
 
-
-
-
-if __name__ == "__main__":
+if __name__=="__main__":
 
     main()
