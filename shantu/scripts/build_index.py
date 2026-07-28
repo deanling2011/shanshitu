@@ -477,7 +477,7 @@ loading="lazy">
 
 href="./history/">
 
-📚 查看全部历史山图集
+ 查看全部历史山图集
 
 </a>
 
