@@ -5,22 +5,16 @@ on:
 
   workflow_dispatch:
 
-
   schedule:
-
     # 北京时间每天09:00
-    # UTC +8
+    # UTC+8
     - cron: "0 1 * * *"
 
 
 
-# GitHub Pages权限
 permissions:
-
   contents: read
-
   pages: write
-
   id-token: write
 
 
@@ -34,6 +28,11 @@ jobs:
     runs-on: ubuntu-latest
 
 
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+
     steps:
 
 
@@ -43,86 +42,57 @@ jobs:
 
 
 
-      # Python环境
+      # Python
       - name: Setup Python
         uses: actions/setup-python@v5
-
         with:
-
           python-version: "3.11"
 
 
 
       # 安装依赖
       - name: Install requirements
-
         run: |
-
           pip install -r shantu/requirements.txt
 
 
 
-      # 执行PDF解析
+      # 解析PDF
       - name: Run PDF parser
-
         run: |
-
           python shantu/scripts/build_index.py
 
 
 
-      # 判断是否有结果
-      - name: Check result
-
-        id: check
-
+      # 准备Pages目录
+      - name: Prepare Pages
         run: |
 
-          if [ -d "shantu/result" ]; then
+          mkdir -p public
 
-            echo "has_result=true" >> $GITHUB_OUTPUT
-
-          else
-
-            echo "has_result=false" >> $GITHUB_OUTPUT
-
-          fi
+          cp -r shantu/result/* public/ || true
 
 
 
-      # 上传Pages文件
+      # 上传Pages
       - name: Upload Pages artifact
-
-        if: steps.check.outputs.has_result == 'true'
-
         uses: actions/upload-pages-artifact@v3
-
         with:
-
-          path: shantu/result
-
+          path: public
 
 
 
-      # 发布GitHub Pages
-      - name: Deploy Pages
-
-        if: steps.check.outputs.has_result == 'true'
-
+      # 发布Pages
+      - name: Deploy to GitHub Pages
         id: deployment
-
         uses: actions/deploy-pages@v4
 
 
 
-
-      # PushDeer通知
+      # PushDeer
       - name: PushDeer Notify
-
-        if: steps.check.outputs.has_result == 'true'
-
+        if: hashFiles('shantu/result/*') != ''
         run: |
-
 
           curl "https://api2.pushdeer.com/message/push" \
           -G \
