@@ -1,9 +1,11 @@
 import re
 import shutil
+
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import fitz  # PyMuPDF
+
 
 
 # =====================
@@ -17,18 +19,24 @@ PDF_PATH = BASE_DIR / "山图集.pdf"
 OUTPUT_DIR = BASE_DIR / "result"
 
 
+
+
 # =====================
 # 获取北京时间
 # =====================
 
 def get_beijing_time():
 
+
     beijing = timezone(
         timedelta(hours=8)
     )
 
-    # 测试日期
-    # 测试完成后删除这一行
+
+    # =====================
+    # 测试模式
+    # =====================
+
     return datetime(
         2026,
         7,
@@ -36,8 +44,12 @@ def get_beijing_time():
         tzinfo=beijing
     )
 
-    # 正式使用：
+
+    # 正式运行打开下面
+    #
     # return datetime.now(beijing)
+
+
 
 
 
@@ -47,15 +59,19 @@ def get_beijing_time():
 
 def clean_output():
 
+
     if OUTPUT_DIR.exists():
 
         shutil.rmtree(
             OUTPUT_DIR
         )
 
+
     OUTPUT_DIR.mkdir(
         exist_ok=True
     )
+
+
 
 
 
@@ -65,19 +81,24 @@ def clean_output():
 
 def build_date_regex(month, day):
 
+
     pattern = (
         rf"{month}\s*月\s*{day}\s*日"
     )
+
 
     return re.compile(pattern)
 
 
 
+
+
 # =====================
-# PDF搜索
+# 搜索PDF
 # =====================
 
 def search_pdf(date_regex, month, day):
+
 
     result_images = []
 
@@ -113,9 +134,8 @@ def search_pdf(date_regex, month, day):
             )
 
 
-            # 图片质量优化
             pix = page.get_pixmap(
-                dpi=150
+                dpi=180
             )
 
 
@@ -147,10 +167,14 @@ def search_pdf(date_regex, month, day):
             )
 
 
+
     doc.close()
 
 
     return result_images
+
+
+
 
 
 
@@ -159,6 +183,12 @@ def search_pdf(date_regex, month, day):
 # =====================
 
 def create_html(month, day, images):
+
+
+    now = datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
 
 
     html = f"""
@@ -170,40 +200,160 @@ def create_html(month, day, images):
 
 <meta charset="utf-8">
 
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1">
+
+
+
 <title>
-山图集 {month}月{day}日
+🌄 山图集 {month}月{day}日
 </title>
 
 
 <style>
 
+
 body {{
 
-    font-family:
-    Arial,
-    "Microsoft YaHei";
+    margin:0;
 
     padding:20px;
 
+    background:#f5f5f5;
+
+    font-family:
+
+    -apple-system,
+
+    BlinkMacSystemFont,
+
+    "Microsoft YaHei",
+
+    Arial;
+
 }}
+
+
+
+.container {{
+
+    max-width:900px;
+
+    margin:auto;
+
+    background:white;
+
+    padding:25px;
+
+    border-radius:16px;
+
+    box-shadow:
+    0 4px 20px rgba(0,0,0,.08);
+
+}}
+
 
 
 h1 {{
 
+    text-align:center;
+
     font-size:32px;
 
+    margin-bottom:10px;
+
 }}
+
+
+
+.info {{
+
+    text-align:center;
+
+    color:#888;
+
+    line-height:1.8;
+
+    margin-bottom:30px;
+
+}}
+
+
+
+.image-box {{
+
+    margin-bottom:35px;
+
+}}
+
 
 
 img {{
 
-    max-width:95%;
+    width:100%;
 
-    margin-bottom:30px;
+    border-radius:12px;
 
-    border:1px solid #ddd;
+    cursor:pointer;
+
+    transition:.3s;
 
 }}
+
+
+
+img:hover {{
+
+    opacity:.85;
+
+}}
+
+
+
+.footer {{
+
+    text-align:center;
+
+    color:#999;
+
+    margin-top:30px;
+
+    font-size:14px;
+
+}}
+
+
+
+.top {{
+
+    position:fixed;
+
+    right:20px;
+
+    bottom:20px;
+
+    background:#333;
+
+    color:white;
+
+    width:45px;
+
+    height:45px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    text-decoration:none;
+
+}}
+
+
 
 </style>
 
@@ -211,36 +361,116 @@ img {{
 </head>
 
 
+
 <body>
 
 
+
+<div class="container">
+
+
+
 <h1>
-山图集 {month}月{day}日
+🌄 山图集 {month}月{day}日
 </h1>
+
+
+
+<div class="info">
+
+
+图片数量：
+{len(images)} 张
+
+
+<br>
+
+
+生成时间：
+{now}
+
+
+<br>
+
+
+来源：
+山图集.pdf
+
+
+</div>
+
 
 """
 
 
-    for img in images:
+
+    for index, img in enumerate(images,1):
 
 
         html += f"""
 
-<img 
+
+<div class="image-box">
+
+
+<a href="./{img}" target="_blank">
+
+
+<img
+
 src="./{img}"
-loading="lazy">
+
+loading="lazy"
+
+alt="山图集第{index}张">
+
+
+</a>
+
+
+</div>
 
 
 """
 
 
-    html += """
+
+    html += f"""
+
+
+<div class="footer">
+
+
+GitHub Actions 自动生成
+
+
+<br>
+
+
+点击图片查看高清版本
+
+
+</div>
+
+
+
+</div>
+
+
+
+<a class="top" href="#">
+↑
+</a>
+
+
 
 </body>
+
 
 </html>
 
 """
+
 
 
     index_file = (
@@ -259,6 +489,9 @@ loading="lazy">
 
 
 
+
+
+
 # =====================
 # 主程序
 # =====================
@@ -266,28 +499,21 @@ loading="lazy">
 def main():
 
 
-    # ===== 正式使用 =====
 
     today = get_beijing_time()
 
 
-    # ===== 测试7月24日打开下面两行 =====
-    # today = datetime(
-    #     2026,
-    #     7,
-    #     24,
-    #     tzinfo=timezone(timedelta(hours=8))
-    # )
-
 
     month = today.month
+
     day = today.day
+
 
 
     print("=====================")
 
     print(
-        "今天日期:",
+        "日期:",
         month,
         "月",
         day,
@@ -298,15 +524,21 @@ def main():
 
 
 
+
     if not PDF_PATH.exists():
 
+
         raise FileNotFoundError(
-            f"找不到PDF文件:{PDF_PATH}"
+            f"找不到PDF:{PDF_PATH}"
         )
 
 
 
+
+
     clean_output()
+
+
 
 
 
@@ -316,10 +548,12 @@ def main():
     )
 
 
+
     print(
-        "匹配规则:",
+        "匹配:",
         regex.pattern
     )
+
 
 
 
@@ -331,6 +565,7 @@ def main():
 
 
 
+
     # =====================
     # 没找到
     # =====================
@@ -338,24 +573,22 @@ def main():
     if not images:
 
 
-        print("=====================")
-
         print(
-            "没有找到:",
-            f"{month}月{day}日"
+            "没有找到对应日期"
         )
 
 
-        print(
-            "不生成结果"
+        # 生成提示页面
+
+        OUTPUT_DIR.mkdir(
+            exist_ok=True
         )
 
 
-        print("=====================")
-
-
-        shutil.rmtree(
-            OUTPUT_DIR
+        create_html(
+            month,
+            day,
+            []
         )
 
 
@@ -363,9 +596,12 @@ def main():
 
 
 
+
+
     # =====================
-    # 找到
+    # 生成网页
     # =====================
+
 
     index = create_html(
         month,
@@ -374,7 +610,7 @@ def main():
     )
 
 
-    # 状态文件
+
     status = (
         OUTPUT_DIR /
         "status.txt"
@@ -391,9 +627,8 @@ def main():
     print("=====================")
 
     print(
-        "处理完成"
+        "完成"
     )
-
 
     print(
         "图片:",
@@ -406,8 +641,9 @@ def main():
         index
     )
 
-
     print("=====================")
+
+
 
 
 
