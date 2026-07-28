@@ -1,1 +1,77 @@
+name: Shantu Daily Check
 
+
+on:
+
+  workflow_dispatch:
+
+
+  schedule:
+    # 北京时间每天09:00
+    # UTC时间 +8小时
+    - cron: "0 1 * * *"
+
+
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+
+      # 拉取代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+
+      # Python环境
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+
+      # 安装依赖
+      - name: Install requirements
+        run: |
+          pip install -r shantu/requirements.txt
+
+
+
+      # 执行PDF解析
+      - name: Run PDF parser
+        run: |
+          python shantu/scripts/build_index.py
+
+
+
+      # 有结果才上传
+      - name: Upload result
+        if: hashFiles('shantu/result/*') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: shantu-result
+          path: shantu/result
+
+
+
+      # ==========================
+      # PushDeer消息推送
+      # ==========================
+
+      - name: PushDeer Notify
+        if: hashFiles('shantu/result/*') != ''
+        run: |
+
+
+          curl "https://api2.pushdeer.com/message/push" \
+          -G \
+          --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
+          --data-urlencode "text=山图集更新提醒" \
+          --data-urlencode "desp=今天的山图集已经找到，请查看GitHub Actions生成结果。"
