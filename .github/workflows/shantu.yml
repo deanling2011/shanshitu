@@ -13,6 +13,7 @@ on:
 
 
 permissions:
+
   contents: read
   pages: write
   id-token: write
@@ -28,11 +29,6 @@ jobs:
     runs-on: ubuntu-latest
 
 
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-
     steps:
 
 
@@ -42,11 +38,20 @@ jobs:
 
 
 
-      # Python
+      # Python环境
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+
+
+      # Python缓存
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: python-${{ runner.os }}
 
 
 
@@ -57,42 +62,47 @@ jobs:
 
 
 
-      # 解析PDF
+      # 执行PDF解析
       - name: Run PDF parser
         run: |
           python shantu/scripts/build_index.py
 
 
 
-      # 准备Pages目录
+      # 准备网页
       - name: Prepare Pages
+        if: hashFiles('shantu/result/status.txt') != ''
         run: |
 
           mkdir -p public
 
-          cp -r shantu/result/* public/ || true
+          cp -r shantu/result/* public/
 
 
 
-      # 上传Pages
+      # 上传网页
       - name: Upload Pages artifact
+        if: hashFiles('shantu/result/status.txt') != ''
         uses: actions/upload-pages-artifact@v3
         with:
+
           path: public
 
 
 
-      # 发布Pages
+      # 发布网页
       - name: Deploy to GitHub Pages
+        if: hashFiles('shantu/result/status.txt') != ''
         id: deployment
         uses: actions/deploy-pages@v4
 
 
 
-      # PushDeer
+      # PushDeer通知
       - name: PushDeer Notify
-        if: hashFiles('shantu/result/*') != ''
+        if: hashFiles('shantu/result/status.txt') != ''
         run: |
+
 
           curl "https://api2.pushdeer.com/message/push" \
           -G \
