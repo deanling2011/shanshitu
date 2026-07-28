@@ -1,6 +1,7 @@
 import re
 
 from datetime import datetime, timezone, timedelta
+
 from pathlib import Path
 
 import fitz
@@ -11,11 +12,10 @@ import fitz
 # 配置
 # =====================
 
-# 测试开关
+
 TEST_MODE = True
 
 
-# 测试日期
 TEST_DATE = (
     2026,
     7,
@@ -28,6 +28,7 @@ TEST_DATE = (
 # =====================
 # 路径
 # =====================
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,6 +48,7 @@ HISTORY_DIR = RESULT_DIR / "history"
 # =====================
 # 北京时间
 # =====================
+
 
 def get_beijing_time():
 
@@ -75,6 +77,7 @@ def get_beijing_time():
 # 初始化
 # =====================
 
+
 def init_dir():
 
     RESULT_DIR.mkdir(
@@ -91,8 +94,35 @@ def init_dir():
 
 
 # =====================
+# 获取历史
+# =====================
+
+
+def get_history():
+
+    return sorted(
+
+        [
+            x.name
+
+            for x in HISTORY_DIR.iterdir()
+
+            if x.is_dir()
+
+        ],
+
+        reverse=True
+
+    )
+
+
+
+
+
+# =====================
 # 日期匹配
 # =====================
+
 
 def build_date_regex(month, day):
 
@@ -108,10 +138,11 @@ def build_date_regex(month, day):
 # PDF解析
 # =====================
 
+
 def search_pdf(regex, save_dir, month, day):
 
 
-    images = []
+    images=[]
 
 
     doc = fitz.open(
@@ -119,7 +150,7 @@ def search_pdf(regex, save_dir, month, day):
     )
 
 
-    for index, page in enumerate(doc):
+    for index,page in enumerate(doc):
 
 
         text = page.get_text()
@@ -132,16 +163,21 @@ def search_pdf(regex, save_dir, month, day):
         )
 
 
+
         if (
+
             regex.search(text)
+
             or
+
             regex.search(clean)
+
         ):
 
 
             print(
                 "找到页面:",
-                index + 1
+                index+1
             )
 
 
@@ -150,14 +186,25 @@ def search_pdf(regex, save_dir, month, day):
             )
 
 
-            name = (
+
+            name=(
+
                 f"shantu-{month:02d}-{day:02d}"
+
                 f"-page-{index+1}.jpg"
+
             )
 
 
+
             pix.save(
-                str(save_dir / name)
+
+                str(
+
+                    save_dir/name
+
+                )
+
             )
 
 
@@ -177,25 +224,36 @@ def search_pdf(regex, save_dir, month, day):
 
 
 # =====================
-# 生成HTML
+# 页面生成
 # =====================
 
+
 def create_html(
-    path,
-    title,
-    images,
-    image_prefix="./",
-    history_count=0
+
+        path,
+
+        title,
+
+        images,
+
+        image_prefix="./",
+
+        show_history=False
+
 ):
 
 
-    now = get_beijing_time().strftime(
+    now=get_beijing_time().strftime(
+
         "%Y-%m-%d %H:%M:%S"
+
     )
 
 
+    history=get_history()
 
-    html = f"""
+
+    html=f"""
 
 <!DOCTYPE html>
 
@@ -203,14 +261,20 @@ def create_html(
 
 <head>
 
+
 <meta charset="utf-8">
 
 
 <meta name="viewport"
+
 content="width=device-width,initial-scale=1">
 
 
-<title>{title}</title>
+<title>
+
+{title}
+
+</title>
 
 
 
@@ -222,6 +286,7 @@ body{{
 background:#f5f5f5;
 
 font-family:
+
 Microsoft YaHei;
 
 padding:20px;
@@ -243,6 +308,7 @@ padding:25px;
 border-radius:18px;
 
 box-shadow:
+
 0 5px 20px rgba(0,0,0,.08);
 
 }}
@@ -263,7 +329,7 @@ font-size:34px;
 
 text-align:center;
 
-color:#888;
+color:#777;
 
 line-height:2;
 
@@ -287,7 +353,7 @@ border-radius:14px;
 
 display:block;
 
-margin-top:30px;
+margin-top:25px;
 
 padding:14px;
 
@@ -295,9 +361,35 @@ background:#333;
 
 color:white;
 
+border-radius:12px;
+
 text-align:center;
 
+text-decoration:none;
+
+}}
+
+
+
+.card{{
+
+background:#f7f7f7;
+
+padding:15px;
+
 border-radius:12px;
+
+margin-top:10px;
+
+text-align:center;
+
+}}
+
+
+
+a{{
+
+color:#333;
 
 text-decoration:none;
 
@@ -324,18 +416,20 @@ text-decoration:none;
 </h1>
 
 
-
 <div class="info">
 
 
-生成时间：
-
-{now}
+📅 日期
 
 <br>
 
+{title}
 
-图片数量：
+
+<br><br>
+
+
+🖼 图片数量：
 
 {len(images)} 张
 
@@ -343,16 +437,20 @@ text-decoration:none;
 <br>
 
 
-历史记录：
+⏰ 更新时间：
 
-{history_count} 期
+{now}
+
+
+<br>
+
+
+📚 历史记录：
+
+{len(history)} 期
 
 
 </div>
-
-
-"""
-
 
 
     for img in images:
@@ -360,30 +458,58 @@ text-decoration:none;
 
         html += f"""
 
-
 <img
 
 src="{image_prefix}{img}"
 
-loading="lazy"
-
->
-
+loading="lazy">
 
 """
 
 
 
-    html += """
+    if show_history:
+
+
+        html += """
 
 <a class="btn"
 
 href="./history/">
 
-查看历史山图集
+📚 查看全部历史山图集
 
 </a>
 
+
+<h2>
+
+最近记录
+
+</h2>
+
+"""
+
+
+        for item in history[:5]:
+
+
+            html += f"""
+
+<div class="card">
+
+<a href="./history/{item}/">
+
+📅 {item}
+
+</a>
+
+</div>
+
+"""
+
+
+    html += """
 
 </div>
 
@@ -396,10 +522,12 @@ href="./history/">
 """
 
 
-
     path.write_text(
+
         html,
+
         encoding="utf-8"
+
     )
 
 
@@ -410,27 +538,14 @@ href="./history/">
 # 历史首页
 # =====================
 
-def create_history_index():
 
+def create_history_index():
 
 
     cards=[]
 
 
-
-    dirs = sorted(
-
-        [
-
-            x for x in HISTORY_DIR.iterdir()
-
-            if x.is_dir()
-
-        ],
-
-        reverse=True
-
-    )
+    dirs=get_history()
 
 
 
@@ -438,8 +553,11 @@ def create_history_index():
 
 
 
+        folder=HISTORY_DIR/d
+
+
         imgs=list(
-            d.glob("*.jpg")
+            folder.glob("*.jpg")
         )
 
 
@@ -449,7 +567,7 @@ def create_history_index():
 
         if imgs:
 
-            cover=f"./{d.name}/{imgs[0].name}"
+            cover=f"./{d}/{imgs[0].name}"
 
 
 
@@ -460,7 +578,7 @@ f"""
 <div class="card">
 
 
-<a href="./{d.name}/">
+<a href="./{d}/">
 
 
 <img src="{cover}">
@@ -468,23 +586,14 @@ f"""
 
 <h2>
 
-📅 {d.name}
+📅 {d}
 
 </h2>
 
 
 <p>
 
-🖼 图片数量：
-
-{len(imgs)} 张
-
-</p>
-
-
-<p class="detail">
-
-点击查看详情 →
+🖼 {len(imgs)} 张图片
 
 </p>
 
@@ -501,11 +610,9 @@ f"""
 
 
 
-
     html=f"""
 
 <!DOCTYPE html>
-
 
 <html>
 
@@ -514,11 +621,6 @@ f"""
 
 
 <meta charset="utf-8">
-
-
-<meta name="viewport"
-
-content="width=device-width,initial-scale=1">
 
 
 <title>
@@ -545,7 +647,7 @@ padding:20px;
 
 
 
-.container{{
+.box{{
 
 max-width:900px;
 
@@ -561,7 +663,7 @@ background:white;
 
 padding:20px;
 
-margin-bottom:25px;
+margin-bottom:20px;
 
 border-radius:18px;
 
@@ -577,7 +679,7 @@ box-shadow:
 
 width:100%;
 
-border-radius:14px;
+border-radius:12px;
 
 }}
 
@@ -592,33 +694,17 @@ color:#333;
 }}
 
 
-
-.detail{{
-
-background:#333;
-
-color:white;
-
-padding:12px;
-
-border-radius:10px;
-
-text-align:center;
-
-}}
-
-
-
 </style>
 
 
 </head>
 
 
+
 <body>
 
 
-<div class="container">
+<div class="box">
 
 
 <h1>
@@ -639,12 +725,13 @@ text-align:center;
 
 </html>
 
+
 """
 
 
-
     (
-        HISTORY_DIR / "index.html"
+        HISTORY_DIR/"index.html"
+
     ).write_text(
 
         html,
@@ -661,23 +748,22 @@ text-align:center;
 # 主程序
 # =====================
 
-def main():
 
+def main():
 
 
     init_dir()
 
 
-
-    today = get_beijing_time()
-
+    today=get_beijing_time()
 
 
-    year = today.year
 
-    month = today.month
+    year=today.year
 
-    day = today.day
+    month=today.month
+
+    day=today.day
 
 
 
@@ -688,14 +774,17 @@ def main():
 
 
 
-    regex = build_date_regex(
+    regex=build_date_regex(
+
         month,
+
         day
+
     )
 
 
 
-    today_dir = (
+    today_dir=(
 
         HISTORY_DIR /
 
@@ -706,12 +795,14 @@ def main():
 
 
     today_dir.mkdir(
+
         exist_ok=True
+
     )
 
 
 
-    images = search_pdf(
+    images=search_pdf(
 
         regex,
 
@@ -725,12 +816,11 @@ def main():
 
 
 
-
     if not images:
 
 
         print(
-            "今天没有图片"
+            "没有找到当天图片"
         )
 
 
@@ -742,34 +832,16 @@ def main():
 
 
 
-    # 当前日期页面
+    # 今日详情页
 
 
     create_html(
 
-        today_dir / "index.html",
+        today_dir/"index.html",
 
         f"🌄 山图集 {month}月{day}日",
 
         images
-
-    )
-
-
-
-
-
-    # 历史数量
-
-    history_count = len(
-
-        [
-
-            x for x in HISTORY_DIR.iterdir()
-
-            if x.is_dir()
-
-        ]
 
     )
 
@@ -782,7 +854,7 @@ def main():
 
     create_html(
 
-        RESULT_DIR / "index.html",
+        RESULT_DIR/"index.html",
 
         f"🌄 山图集 {month}月{day}日",
 
@@ -790,10 +862,9 @@ def main():
 
         f"./history/{year}-{month:02d}-{day:02d}/",
 
-        history_count
+        True
 
     )
-
 
 
 
@@ -804,7 +875,7 @@ def main():
 
 
     (
-        RESULT_DIR / "status.txt"
+        RESULT_DIR/"status.txt"
 
     ).write_text(
 
@@ -815,7 +886,6 @@ def main():
     )
 
 
-
     print(
         "完成"
     )
@@ -824,6 +894,6 @@ def main():
 
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
 
     main()
