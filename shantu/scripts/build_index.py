@@ -16,7 +16,7 @@ import fitz
 # 测试模式
 # 发布前改 False
 
-TEST_MODE = True
+TEST_MODE = False
 
 
 TEST_DATE = (
