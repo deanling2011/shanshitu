@@ -500,7 +500,7 @@ href="./history/">
 
 <a href="./history/{item}/">
 
-📅 {item}
+ {item}
 
 </a>
 
