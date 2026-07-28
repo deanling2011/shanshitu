@@ -27,7 +27,17 @@ def get_beijing_time():
         timedelta(hours=8)
     )
 
-    return datetime.now(beijing)
+    # 测试日期
+    # 测试完成后删除这一行
+    return datetime(
+        2026,
+        7,
+        24,
+        tzinfo=beijing
+    )
+
+    # 正式使用：
+    # return datetime.now(beijing)
 
 
 
