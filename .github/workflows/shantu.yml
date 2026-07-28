@@ -7,15 +7,29 @@ on:
 
 
   schedule:
+
     # 北京时间每天09:00
-    # UTC时间 +8小时
+    # UTC +8
     - cron: "0 1 * * *"
+
+
+
+# GitHub Pages权限
+permissions:
+
+  contents: read
+
+  pages: write
+
+  id-token: write
 
 
 
 jobs:
 
+
   build:
+
 
     runs-on: ubuntu-latest
 
@@ -32,41 +46,81 @@ jobs:
       # Python环境
       - name: Setup Python
         uses: actions/setup-python@v5
+
         with:
+
           python-version: "3.11"
 
 
 
       # 安装依赖
       - name: Install requirements
+
         run: |
+
           pip install -r shantu/requirements.txt
 
 
 
       # 执行PDF解析
       - name: Run PDF parser
+
         run: |
+
           python shantu/scripts/build_index.py
 
 
 
-      # 有结果才上传
-      - name: Upload result
-        if: hashFiles('shantu/result/*') != ''
-        uses: actions/upload-artifact@v4
+      # 判断是否有结果
+      - name: Check result
+
+        id: check
+
+        run: |
+
+          if [ -d "shantu/result" ]; then
+
+            echo "has_result=true" >> $GITHUB_OUTPUT
+
+          else
+
+            echo "has_result=false" >> $GITHUB_OUTPUT
+
+          fi
+
+
+
+      # 上传Pages文件
+      - name: Upload Pages artifact
+
+        if: steps.check.outputs.has_result == 'true'
+
+        uses: actions/upload-pages-artifact@v3
+
         with:
-          name: shantu-result
+
           path: shantu/result
 
 
 
-      # ==========================
-      # PushDeer消息推送
-      # ==========================
 
+      # 发布GitHub Pages
+      - name: Deploy Pages
+
+        if: steps.check.outputs.has_result == 'true'
+
+        id: deployment
+
+        uses: actions/deploy-pages@v4
+
+
+
+
+      # PushDeer通知
       - name: PushDeer Notify
-        if: hashFiles('shantu/result/*') != ''
+
+        if: steps.check.outputs.has_result == 'true'
+
         run: |
 
 
@@ -74,4 +128,4 @@ jobs:
           -G \
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
           --data-urlencode "text=山图集更新提醒" \
-          --data-urlencode "desp=今天的山图集已经找到，请查看GitHub Actions生成结果。"
+          --data-urlencode "desp=今天的山图集已经生成： https://deanling2011.github.io/shanshitu/"
