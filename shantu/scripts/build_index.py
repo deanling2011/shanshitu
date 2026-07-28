@@ -28,9 +28,12 @@ HISTORY_DIR = BASE_DIR / "history"
 
 def get_beijing_time():
 
-    return datetime.now(
-        timezone(timedelta(hours=8))
-    )
+    return datetime(
+    2026,
+    7,
+    24,
+    tzinfo=timezone(timedelta(hours=8))
+)
 
 
 
