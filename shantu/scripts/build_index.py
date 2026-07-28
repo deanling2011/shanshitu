@@ -18,7 +18,7 @@ PDF_PATH = BASE_DIR / "山图集.pdf"
 RESULT_DIR = BASE_DIR / "result"
 
 
-HISTORY_DIR = BASE_DIR / "history"
+HISTORY_DIR = RESULT_DIR / "history"
 
 
 
@@ -28,12 +28,25 @@ HISTORY_DIR = BASE_DIR / "history"
 
 def get_beijing_time():
 
+
+    tz = timezone(
+        timedelta(hours=8)
+    )
+
+
+    # ===== 测试 =====
     return datetime(
-    2026,
-    7,
-    24,
-    tzinfo=timezone(timedelta(hours=8))
-)
+        2026,
+        7,
+        24,
+        tzinfo=tz
+    )
+
+
+    # ===== 正式 =====
+    # return datetime.now(tz)
+
+
 
 
 
@@ -47,9 +60,12 @@ def init_dir():
         exist_ok=True
     )
 
+
     HISTORY_DIR.mkdir(
         exist_ok=True
     )
+
+
 
 
 
@@ -57,7 +73,8 @@ def init_dir():
 # 日期匹配
 # =====================
 
-def build_date_regex(month, day):
+def build_date_regex(month,day):
+
 
     return re.compile(
         rf"{month}\s*月\s*{day}\s*日"
@@ -65,11 +82,13 @@ def build_date_regex(month, day):
 
 
 
+
+
 # =====================
-# 搜索PDF
+# PDF解析
 # =====================
 
-def search_pdf(regex, save_dir, month, day):
+def search_pdf(regex,save_dir,month,day):
 
 
     images=[]
@@ -135,23 +154,35 @@ def search_pdf(regex, save_dir, month, day):
 
 
 
+
+
 # =====================
 # 生成HTML
 # =====================
 
 def create_html(
-    path,
-    title,
-    images
+        path,
+        title,
+        images,
+        image_prefix="./"
 ):
 
 
+    now=datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+
     html=f"""
+
+<!DOCTYPE html>
+
 <html>
 
 <head>
 
 <meta charset="utf-8">
+
 
 <meta name="viewport"
 content="width=device-width,initial-scale=1">
@@ -162,35 +193,63 @@ content="width=device-width,initial-scale=1">
 
 <style>
 
+
 body{{
+
 background:#f5f5f5;
-font-family:Microsoft YaHei;
+
+font-family:
+Microsoft YaHei;
+
 padding:20px;
+
 }}
 
+
 .box{{
+
 max-width:900px;
+
 margin:auto;
+
 background:white;
+
 padding:25px;
+
 border-radius:16px;
+
 }}
+
 
 
 h1{{
+
 text-align:center;
+
 }}
+
+
+
+.info{{
+
+text-align:center;
+
+color:#888;
+
+}}
+
 
 
 img{{
+
 width:100%;
+
 margin-top:30px;
+
 border-radius:12px;
+
 }}
 
-a{{
-text-decoration:none;
-}}
 
 </style>
 
@@ -205,23 +264,50 @@ text-decoration:none;
 
 
 <h1>
+
 {title}
+
 </h1>
+
+
+
+<div class="info">
+
+生成时间:
+{now}
+
+<br>
+
+图片数量:
+{len(images)}张
+
+
+</div>
+
 
 """
 
 
     for img in images:
 
-        html+=f"""
 
-<img src="./{img}">
+        html += f"""
+
+
+<img
+
+src="{image_prefix}{img}"
+
+loading="lazy"
+
+>
+
 
 """
 
 
-    html+="""
 
+    html += """
 
 </div>
 
@@ -239,6 +325,8 @@ text-decoration:none;
 
 
 
+
+
 # =====================
 # 历史首页
 # =====================
@@ -249,27 +337,39 @@ def create_history_index():
     items=[]
 
 
-    for d in sorted(
-        HISTORY_DIR.iterdir(),
+    dirs = sorted(
+        [
+            x for x in HISTORY_DIR.iterdir()
+            if x.is_dir()
+        ],
         reverse=True
-    ):
+    )
 
 
-        if d.is_dir():
+    for d in dirs:
 
-            items.append(
-                f"""
+
+        items.append(
+
+f"""
+
 <li>
-<a href="./{d.name}/">
-{d.name}
-</a>
-</li>
-"""
-            )
 
+<a href="./{d.name}/">
+
+{d.name}
+
+</a>
+
+</li>
+
+"""
+
+)
 
 
     html=f"""
+
 
 <html>
 
@@ -280,7 +380,6 @@ def create_history_index():
 <title>
 山图集历史
 </title>
-
 
 </head>
 
@@ -302,15 +401,21 @@ def create_history_index():
 
 </body>
 
+
 </html>
+
 
 """
 
 
-    (HISTORY_DIR/"index.html").write_text(
+    (
+        HISTORY_DIR/"index.html"
+    ).write_text(
         html,
         encoding="utf-8"
     )
+
+
 
 
 
@@ -328,7 +433,9 @@ def main():
 
 
     year=today.year
+
     month=today.month
+
     day=today.day
 
 
@@ -370,52 +477,68 @@ def main():
 
     if not images:
 
+
         print(
-            "今天没有图片"
+            "今天没有图片，保留历史"
         )
 
 
+        create_history_index()
+
         return
+
+
 
 
 
     # 今日页面
 
     create_html(
+
         today_dir/"index.html",
+
         f"🌄 山图集 {month}月{day}日",
+
         images
+
     )
 
 
 
-    # 首页复制
+
+    # 首页
 
     create_html(
+
         RESULT_DIR/"index.html",
+
         f"🌄 山图集 {month}月{day}日",
-        images
+
+        images,
+
+        f"./history/{year}-{month:02d}-{day:02d}/"
+
     )
 
 
-
-    # 历史入口
 
     create_history_index()
 
 
 
-    # 状态
-
-    (RESULT_DIR/"status.txt").write_text(
+    (
+        RESULT_DIR/"status.txt"
+    ).write_text(
         "FOUND",
         encoding="utf-8"
     )
 
 
+
     print(
         "完成"
     )
+
 
 
 
