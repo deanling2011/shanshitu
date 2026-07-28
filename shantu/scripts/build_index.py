@@ -27,27 +27,11 @@ OUTPUT_DIR = BASE_DIR / "result"
 
 def get_beijing_time():
 
-
     beijing = timezone(
         timedelta(hours=8)
     )
 
-
-    # =====================
-    # 测试模式
-    # =====================
-
-   # return datetime(
-        #2026,
-        #7,
-       # 24,
-       # tzinfo=beijing
-    #)
-
-
-    # 正式运行打开下面
-    #
-     return datetime.now(beijing)
+    return datetime.now(beijing)
 
 
 
