@@ -8,10 +8,8 @@ on:
   schedule:
 
     # 北京时间每天09:00
-    # UTC时间01:00
 
     - cron: "0 1 * * *"
-
 
 
 
@@ -27,7 +25,6 @@ permissions:
 
 
 
-
 jobs:
 
 
@@ -35,7 +32,6 @@ jobs:
 
 
     runs-on: ubuntu-latest
-
 
 
     environment:
@@ -46,15 +42,11 @@ jobs:
 
 
 
-
-
-
     steps:
 
 
-
       # =====================
-      # 拉取代码
+      # Checkout
       # =====================
 
       - name: Checkout
@@ -64,9 +56,8 @@ jobs:
 
 
 
-
       # =====================
-      # Python环境
+      # Python
       # =====================
 
       - name: Setup Python
@@ -80,9 +71,8 @@ jobs:
 
 
 
-
       # =====================
-      # Python缓存
+      # Cache
       # =====================
 
       - name: Cache Python packages
@@ -102,9 +92,8 @@ jobs:
 
 
 
-
       # =====================
-      # 安装依赖
+      # Install
       # =====================
 
       - name: Install requirements
@@ -118,37 +107,25 @@ jobs:
 
 
       # =====================
-      # PDF解析
+      # Run
       # =====================
 
       - name: Run PDF parser
 
         run: |
 
-          echo "===================="
-
           echo "开始解析山图集PDF"
-
-          echo "===================="
-
 
           python shantu/scripts/build_index.py
 
-
-          echo "===================="
-
-          echo "PDF解析完成"
-
-          echo "===================="
-
-
+          echo "解析完成"
 
 
 
 
 
       # =====================
-      # 检查是否生成
+      # Check
       # =====================
 
       - name: Check result
@@ -160,19 +137,11 @@ jobs:
 
           if [ -f "shantu/result/status.txt" ]; then
 
-
             echo "found=true" >> $GITHUB_OUTPUT
-
-            echo "检测到山图更新"
-
 
           else
 
-
             echo "found=false" >> $GITHUB_OUTPUT
-
-            echo "今日无山图更新"
-
 
           fi
 
@@ -181,9 +150,8 @@ jobs:
 
 
 
-
       # =====================
-      # 查看生成结果
+      # Debug
       # =====================
 
       - name: Check generated files
@@ -193,17 +161,12 @@ jobs:
         run: |
 
 
-          echo "===== result文件 ====="
+          echo "===== result ====="
+
+          find shantu/result -type f
 
 
-          find shantu/result -maxdepth 2 -type f
-
-
-
-          echo ""
-
-          echo "===== PushDeer内容 ====="
-
+          echo "===== notify ====="
 
           cat shantu/result/notify.txt
 
@@ -212,10 +175,8 @@ jobs:
 
 
 
-
-
       # =====================
-      # 准备GitHub Pages
+      # Pages
       # =====================
 
       - name: Prepare Pages
@@ -225,24 +186,14 @@ jobs:
         run: |
 
 
-          mkdir -p public
+          mkdir public
 
 
           cp -r shantu/result/* public/
 
 
-          echo "Pages准备完成"
 
 
-
-
-
-
-
-
-      # =====================
-      # 上传Pages
-      # =====================
 
       - name: Upload Pages artifact
 
@@ -259,11 +210,6 @@ jobs:
 
 
 
-
-      # =====================
-      # 发布Pages
-      # =====================
-
       - name: Deploy to GitHub Pages
 
         if: steps.check.outputs.found == 'true'
@@ -279,7 +225,7 @@ jobs:
 
 
       # =====================
-      # PushDeer成功通知
+      # PushDeer Success
       # =====================
 
       - name: PushDeer Notify
@@ -289,59 +235,18 @@ jobs:
         run: |
 
 
-          echo "开始发送PushDeer通知"
-
+          echo "发送PushDeer通知"
 
 
           MESSAGE=$(cat shantu/result/notify.txt)
 
 
-
-          RESPONSE=$(curl -s \
-
-          "https://api2.pushdeer.com/message/push" \
-
+          curl -s "https://api2.pushdeer.com/message/push" \
           -G \
-
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
-
           --data-urlencode "text=🌄 山图集每日更新" \
-
           --data-urlencode "desp=${MESSAGE}" \
-
-          --data-urlencode "type=markdown")
-
-
-
-
-
-          echo "PushDeer返回："
-
-          echo "$RESPONSE"
-
-
-
-
-
-          if echo "$RESPONSE" | grep -q '"code":0';
-
-          then
-
-
-            echo "PushDeer发送成功"
-
-
-          else
-
-
-            echo "PushDeer发送失败"
-
-            exit 1
-
-
-          fi
-
-
+          --data-urlencode "type=markdown"
 
 
 
@@ -349,7 +254,7 @@ jobs:
 
 
       # =====================
-      # PushDeer失败通知
+      # PushDeer Failed
       # =====================
 
       - name: PushDeer Failed Notify
@@ -362,17 +267,8 @@ jobs:
           echo "发送失败通知"
 
 
-
-          curl -s \
-
-          "https://api2.pushdeer.com/message/push" \
-
+          curl -s "https://api2.pushdeer.com/message/push" \
           -G \
-
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
-
           --data-urlencode "text=❌ 山图集运行失败" \
-
-          --data-urlencode "desp=GitHub Actions执行失败，请检查日志：
-
-https://github.com/${{ github.repository }}/actions"
+          --data-urlencode "desp=GitHub Actions执行失败，请检查日志 https://github.com/${{ github.repository }}/actions"
