@@ -812,6 +812,11 @@ color:#333;
 # =====================
 
 
+# =====================
+# PushDeer通知
+# =====================
+
+
 def create_notify(
 
         year,
@@ -825,75 +830,120 @@ def create_notify(
 ):
 
 
-    history_count=len(
-
+    history_count = len(
         get_history()
+    )
+
+
+    today_date = (
+
+        f"{year}-{month:02d}-{day:02d}"
 
     )
 
 
-
-    today_url=(
+    today_url = (
 
         f"{SITE_URL}/history/"
 
-        f"{year}-{month:02d}-{day:02d}/"
+        f"{today_date}/"
 
     )
 
 
-    home_url=SITE_URL
+    home_url = SITE_URL
 
 
 
-    cover_url=(
+    # 第一张作为封面
 
-        f"{today_url}{images[0]}"
+    if images:
+
+
+        cover_url = (
+
+            f"{today_url}"
+
+            f"{images[0]}"
+
+        )
+
+
+    else:
+
+
+        cover_url = ""
+
+
+
+
+    now = get_beijing_time().strftime(
+
+        "%Y-%m-%d %H:%M:%S"
 
     )
+
 
 
 
     notify=f"""
-# 🌄 山图集更新成功
+# 🌄 山图集每日更新
 
 
-## 📅 日期
-
-{year}-{month:02d}-{day:02d}
+## 🏔 今日封面
 
 
-## 🖼 图片数量
+![]({cover_url})
+
+
+
+---
+
+
+📅 **日期**
+
+{today_date}
+
+
+
+🖼 **图片数量**
 
 {len(images)} 张
 
 
-## 📚 历史记录
+
+📚 **历史记录**
 
 {history_count} 期
 
 
-## 🖼 今日封面
 
-{cover_url}
+⏰ **生成时间**
+
+{now}
 
 
-## 🔗 今日查看
+
+🔗 **今日查看**
 
 {today_url}
 
 
-## 🏠 网站首页
+
+🏠 **网站首页**
 
 {home_url}
 
+
+
+---
 
 > 自动生成于 GitHub Actions
 """
 
 
     (
-        RESULT_DIR/"notify.txt"
+        RESULT_DIR / "notify.txt"
     ).write_text(
 
         notify,
@@ -904,8 +954,11 @@ def create_notify(
 
 
 
+    # 保存封面地址备用
+
     (
-        RESULT_DIR/"cover.txt"
+        RESULT_DIR / "cover.txt"
+
     ).write_text(
 
         cover_url,
@@ -913,6 +966,7 @@ def create_notify(
         encoding="utf-8"
 
     )
+
 
 
 
