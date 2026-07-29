@@ -43,7 +43,9 @@ jobs:
 
 
 
+      # =====================
       # 拉取代码
+      # =====================
 
       - name: Checkout
 
@@ -53,7 +55,9 @@ jobs:
 
 
 
+      # =====================
       # Python环境
+      # =====================
 
       - name: Setup Python
 
@@ -67,7 +71,9 @@ jobs:
 
 
 
+      # =====================
       # Python缓存
+      # =====================
 
       - name: Cache Python packages
 
@@ -77,14 +83,19 @@ jobs:
 
           path: ~/.cache/pip
 
-          key: python-${{ runner.os }}
+          key: python-${{ runner.os }}-${{ hashFiles('shantu/requirements.txt') }}
+
+          restore-keys: |
+
+            python-${{ runner.os }}-
 
 
 
 
 
-
+      # =====================
       # 安装依赖
+      # =====================
 
       - name: Install requirements
 
@@ -96,20 +107,27 @@ jobs:
 
 
 
+      # =====================
       # 执行PDF解析
+      # =====================
 
       - name: Run PDF parser
 
         run: |
 
+          echo "开始解析山图集PDF"
+
           python shantu/scripts/build_index.py
 
+          echo "PDF解析完成"
 
 
 
 
 
-      # 判断是否生成
+      # =====================
+      # 检查结果
+      # =====================
 
       - name: Check result
 
@@ -123,11 +141,15 @@ jobs:
 
             echo "found=true" >> $GITHUB_OUTPUT
 
+            echo "检测到新山图"
+
 
           else
 
 
             echo "found=false" >> $GITHUB_OUTPUT
+
+            echo "今天没有新内容"
 
 
           fi
@@ -137,8 +159,34 @@ jobs:
 
 
 
+      # =====================
+      # 查看生成文件
+      # =====================
 
+      - name: Check generated files
+
+        if: steps.check.outputs.found == 'true'
+
+        run: |
+
+
+          echo "===== result目录 ====="
+
+          ls -lh shantu/result
+
+
+          echo "===== notify内容 ====="
+
+          cat shantu/result/notify.txt
+
+
+
+
+
+
+      # =====================
       # 准备Pages
+      # =====================
 
       - name: Prepare Pages
 
@@ -153,12 +201,16 @@ jobs:
           cp -r shantu/result/* public/
 
 
+          echo "Pages文件准备完成"
 
 
 
 
 
+
+      # =====================
       # 上传Pages
+      # =====================
 
       - name: Upload Pages artifact
 
@@ -175,7 +227,9 @@ jobs:
 
 
 
+      # =====================
       # 发布Pages
+      # =====================
 
       - name: Deploy to GitHub Pages
 
@@ -190,8 +244,9 @@ jobs:
 
 
 
-
-      # PushDeer通知
+      # =====================
+      # PushDeer成功通知
+      # =====================
 
       - name: PushDeer Notify
 
@@ -203,9 +258,7 @@ jobs:
           echo "发送PushDeer通知"
 
 
-
           MESSAGE=$(cat shantu/result/notify.txt)
-
 
 
           curl "https://api2.pushdeer.com/message/push" \
@@ -219,9 +272,9 @@ jobs:
 
 
 
-
-
-      # 失败通知
+      # =====================
+      # PushDeer失败通知
+      # =====================
 
       - name: PushDeer Failed Notify
 
@@ -230,8 +283,11 @@ jobs:
         run: |
 
 
+          echo "发送失败通知"
+
+
           curl "https://api2.pushdeer.com/message/push" \
           -G \
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
-          --data-urlencode "text=❌ 山图集更新失败" \
+          --data-urlencode "text=❌ 山图集运行失败" \
           --data-urlencode "desp=GitHub Actions执行失败，请检查日志： https://github.com/${{ github.repository }}/actions"
