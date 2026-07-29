@@ -17,8 +17,12 @@ on:
 permissions:
 
   contents: read
+
   pages: write
+
   id-token: write
+
+
 
 
 
@@ -72,7 +76,7 @@ jobs:
 
 
       # =====================
-      # Python缓存
+      # 缓存
       # =====================
 
       - name: Cache Python packages
@@ -83,9 +87,11 @@ jobs:
 
           path: ~/.cache/pip
 
-          key: python-${{ runner.os }}-${{ hashFiles('shantu/requirements.txt') }}
+          key:
 
-          restore-keys: |
+            python-${{ runner.os }}-${{ hashFiles('shantu/requirements.txt') }}
+
+          restore-keys:
 
             python-${{ runner.os }}-
 
@@ -108,16 +114,22 @@ jobs:
 
 
       # =====================
-      # 执行PDF解析
+      # PDF解析
       # =====================
 
       - name: Run PDF parser
 
         run: |
 
+          echo "===================="
+
           echo "开始解析山图集PDF"
 
+          echo "===================="
+
+
           python shantu/scripts/build_index.py
+
 
           echo "PDF解析完成"
 
@@ -141,6 +153,7 @@ jobs:
 
             echo "found=true" >> $GITHUB_OUTPUT
 
+
             echo "检测到新山图"
 
 
@@ -149,7 +162,8 @@ jobs:
 
             echo "found=false" >> $GITHUB_OUTPUT
 
-            echo "今天没有新内容"
+
+            echo "今天没有更新"
 
 
           fi
@@ -158,9 +172,8 @@ jobs:
 
 
 
-
       # =====================
-      # 查看生成文件
+      # 查看生成内容
       # =====================
 
       - name: Check generated files
@@ -170,12 +183,17 @@ jobs:
         run: |
 
 
-          echo "===== result目录 ====="
-
-          ls -lh shantu/result
+          echo "===== 文件列表 ====="
 
 
-          echo "===== notify内容 ====="
+          find shantu/result -maxdepth 2 -type f
+
+
+
+          echo ""
+
+          echo "===== 通知内容 ====="
+
 
           cat shantu/result/notify.txt
 
@@ -183,9 +201,8 @@ jobs:
 
 
 
-
       # =====================
-      # 准备Pages
+      # Pages准备
       # =====================
 
       - name: Prepare Pages
@@ -201,8 +218,7 @@ jobs:
           cp -r shantu/result/* public/
 
 
-          echo "Pages文件准备完成"
-
+          echo "Pages准备完成"
 
 
 
@@ -226,7 +242,6 @@ jobs:
 
 
 
-
       # =====================
       # 发布Pages
       # =====================
@@ -243,7 +258,6 @@ jobs:
 
 
 
-
       # =====================
       # PushDeer成功通知
       # =====================
@@ -255,17 +269,62 @@ jobs:
         run: |
 
 
-          echo "发送PushDeer通知"
+          echo "开始发送PushDeer"
+
 
 
           MESSAGE=$(cat shantu/result/notify.txt)
 
 
-          curl "https://api2.pushdeer.com/message/push" \
+
+          COVER=$(cat shantu/result/cover.txt)
+
+
+
+
+
+          RESPONSE=$(curl -s \
+
+          "https://api2.pushdeer.com/message/push" \
+
           -G \
+
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
-          --data-urlencode "text=🌄 山图集更新成功" \
-          --data-urlencode "desp=${MESSAGE}"
+
+          --data-urlencode "text=🌄 山图集每日更新" \
+
+          --data-urlencode "desp=${MESSAGE}" \
+
+          --data-urlencode "type=markdown" \
+
+          --data-urlencode "image=${COVER}")
+
+
+
+
+
+          echo "PushDeer返回:"
+
+          echo "$RESPONSE"
+
+
+
+
+
+          if echo "$RESPONSE" | grep -q '"code":0';
+
+          then
+
+            echo "PushDeer发送成功"
+
+          else
+
+            echo "PushDeer发送失败"
+
+            exit 1
+
+          fi
+
 
 
 
@@ -273,7 +332,7 @@ jobs:
 
 
       # =====================
-      # PushDeer失败通知
+      # 失败通知
       # =====================
 
       - name: PushDeer Failed Notify
@@ -283,11 +342,30 @@ jobs:
         run: |
 
 
-          echo "发送失败通知"
+          curl -s \
 
+          "https://api2.pushdeer.com/message/push" \
 
-          curl "https://api2.pushdeer.com/message/push" \
           -G \
+
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
+
           --data-urlencode "text=❌ 山图集运行失败" \
-          --data-urlencode "desp=GitHub Actions执行失败，请检查日志： https://github.com/${{ github.repository }}/actions"
+
+          --data-urlencode "desp=
+
+
+GitHub Actions执行失败
+
+
+仓库：
+
+https://github.com/${{ github.repository }}/actions
+
+
+请检查日志。
+
+
+"
+
+
