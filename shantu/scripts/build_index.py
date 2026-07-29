@@ -574,7 +574,45 @@ href="./history/">
         encoding="utf-8"
 
     )
+# =====================
+# PushDeer通知内容
+# =====================
 
+
+notify = f"""
+🌄 山图集更新成功
+
+
+📅 日期：
+
+{year}-{month:02d}-{day:02d}
+
+
+🖼 图片数量：
+
+{len(images)} 张
+
+
+📚 历史记录：
+
+{len(history)} 期
+
+
+🔗 查看地址：
+
+https://deanling2011.github.io/shanshitu/
+"""
+
+
+(
+    RESULT_DIR / "notify.txt"
+).write_text(
+
+    notify,
+
+    encoding="utf-8"
+
+)
 
 
 
