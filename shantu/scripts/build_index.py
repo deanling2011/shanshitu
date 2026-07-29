@@ -13,13 +13,12 @@ import fitz
 
 
 # 测试模式
-# 发布前改 False
+# 正式运行改 False
 
 TEST_MODE = False
 
 
 # 测试日期
-# 仅测试使用
 
 TEST_DATE = (
     2026,
@@ -27,6 +26,16 @@ TEST_DATE = (
     24
 )
 
+
+
+# =====================
+# 网站地址
+# =====================
+
+
+SITE_URL = (
+    "https://deanling2011.github.io/shanshitu"
+)
 
 
 
@@ -57,6 +66,7 @@ HISTORY_DIR = RESULT_DIR / "history"
 
 def get_beijing_time():
 
+
     tz = timezone(
         timedelta(hours=8)
     )
@@ -64,11 +74,17 @@ def get_beijing_time():
 
     if TEST_MODE:
 
+
         return datetime(
+
             TEST_DATE[0],
+
             TEST_DATE[1],
+
             TEST_DATE[2],
+
             tzinfo=tz
+
         )
 
 
@@ -163,7 +179,7 @@ def search_pdf(
 ):
 
 
-    images = []
+    images=[]
 
 
     doc = fitz.open(
@@ -173,11 +189,10 @@ def search_pdf(
     )
 
 
-    for index, page in enumerate(doc):
+    for index,page in enumerate(doc):
 
 
         text = page.get_text()
-
 
 
         clean = re.sub(
@@ -191,7 +206,6 @@ def search_pdf(
         )
 
 
-
         if (
 
             regex.search(text)
@@ -203,7 +217,6 @@ def search_pdf(
         ):
 
 
-
             print(
 
                 "找到页面:",
@@ -213,7 +226,6 @@ def search_pdf(
             )
 
 
-
             pix = page.get_pixmap(
 
                 dpi=180
@@ -221,15 +233,15 @@ def search_pdf(
             )
 
 
+            name=(
 
-            name = (
 
                 f"shantu-{month:02d}-{day:02d}"
 
                 f"-page-{index+1}.jpg"
 
-            )
 
+            )
 
 
             pix.save(
@@ -243,13 +255,11 @@ def search_pdf(
             )
 
 
-
             images.append(
 
                 name
 
             )
-
 
 
             print(
@@ -261,10 +271,7 @@ def search_pdf(
             )
 
 
-
-
     doc.close()
-
 
 
     return images
@@ -321,6 +328,7 @@ content="width=device-width,initial-scale=1">
 {title}
 
 </title>
+
 
 
 <style>
@@ -447,7 +455,6 @@ color:#333;
 }}
 
 
-
 </style>
 
 
@@ -512,7 +519,6 @@ color:#333;
 """
 
 
-
     for img in images:
 
 
@@ -575,7 +581,6 @@ href="./history/">
 """
 
 
-
     html += """
 
 </div>
@@ -589,7 +594,6 @@ href="./history/">
 </html>
 
 """
-
 
 
     path.write_text(
@@ -625,13 +629,11 @@ def create_history_index():
         folder = HISTORY_DIR / item
 
 
-
         images=list(
 
             folder.glob("*.jpg")
 
         )
-
 
 
         cover=""
@@ -786,6 +788,7 @@ color:#333;
 <body>
 
 
+
 <h1>
 
 🌄 山图集历史
@@ -806,7 +809,6 @@ color:#333;
 """
 
 
-
     (
 
         HISTORY_DIR / "index.html"
@@ -823,9 +825,8 @@ color:#333;
 
 
 
-
 # =====================
-# 生成PushDeer消息
+# PushDeer通知
 # =====================
 
 
@@ -842,15 +843,25 @@ def create_notify(
 ):
 
 
-    history_count=len(
+    history_count = len(
 
         get_history()
 
     )
 
 
-    notify=f"""
+    today_url = (
 
+        f"{SITE_URL}"
+
+        f"/history/"
+
+        f"{year}-{month:02d}-{day:02d}/"
+
+    )
+
+
+    notify = f"""
 🌄 山图集更新成功
 
 
@@ -869,10 +880,14 @@ def create_notify(
 {history_count} 期
 
 
-🔗 查看地址：
+🔗 今日查看：
 
-https://deanling2011.github.io/shanshitu/
+{today_url}
 
+
+🏠 首页：
+
+{SITE_URL}
 """
 
 
@@ -986,9 +1001,6 @@ def main():
 
 
 
-    # =====================
-    # 无更新
-    # =====================
 
 
     if not images:
@@ -1004,16 +1016,13 @@ def main():
         create_history_index()
 
 
-
         return
 
 
 
 
 
-    # =====================
     # 今日页面
-    # =====================
 
 
     create_html(
@@ -1030,9 +1039,17 @@ def main():
 
 
 
-    # =====================
+    history_count=len(
+
+        get_history()
+
+    )
+
+
+
+
+
     # 首页
-    # =====================
 
 
     create_html(
@@ -1051,8 +1068,13 @@ def main():
 
 
 
+
+
     create_history_index()
 
+
+
+    # PushDeer消息
 
 
     create_notify(
@@ -1101,6 +1123,6 @@ def main():
 
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
     main()
