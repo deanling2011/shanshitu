@@ -1,6 +1,7 @@
 import re
 
 from datetime import datetime, timezone, timedelta
+
 from pathlib import Path
 
 import fitz
@@ -12,13 +13,8 @@ import fitz
 # =====================
 
 
-# 测试模式
-# 正式运行改 False
-
 TEST_MODE = False
 
-
-# 测试日期
 
 TEST_DATE = (
     2026,
@@ -74,17 +70,11 @@ def get_beijing_time():
 
     if TEST_MODE:
 
-
         return datetime(
-
             TEST_DATE[0],
-
             TEST_DATE[1],
-
             TEST_DATE[2],
-
             tzinfo=tz
-
         )
 
 
@@ -95,7 +85,7 @@ def get_beijing_time():
 
 
 # =====================
-# 初始化目录
+# 初始化
 # =====================
 
 
@@ -116,7 +106,7 @@ def init_dir():
 
 
 # =====================
-# 获取历史记录
+# 历史记录
 # =====================
 
 
@@ -126,7 +116,6 @@ def get_history():
     return sorted(
 
         [
-
             x.name
 
             for x in HISTORY_DIR.iterdir()
@@ -195,6 +184,7 @@ def search_pdf(
         text = page.get_text()
 
 
+
         clean = re.sub(
 
             r"\s+",
@@ -204,6 +194,7 @@ def search_pdf(
             text
 
         )
+
 
 
         if (
@@ -221,9 +212,10 @@ def search_pdf(
 
                 "找到页面:",
 
-                index + 1
+                index+1
 
             )
+
 
 
             pix = page.get_pixmap(
@@ -233,24 +225,20 @@ def search_pdf(
             )
 
 
-            name=(
 
+            name=(
 
                 f"shantu-{month:02d}-{day:02d}"
 
                 f"-page-{index+1}.jpg"
 
-
             )
+
 
 
             pix.save(
 
-                str(
-
-                    save_dir / name
-
-                )
+                str(save_dir/name)
 
             )
 
@@ -269,6 +257,7 @@ def search_pdf(
                 name
 
             )
+
 
 
     doc.close()
@@ -323,11 +312,7 @@ def create_html(
 content="width=device-width,initial-scale=1">
 
 
-<title>
-
-{title}
-
-</title>
+<title>{title}</title>
 
 
 
@@ -461,7 +446,6 @@ color:#333;
 </head>
 
 
-
 <body>
 
 
@@ -477,7 +461,6 @@ color:#333;
 {title}
 
 </h1>
-
 
 
 
@@ -517,6 +500,7 @@ color:#333;
 
 
 """
+
 
 
     for img in images:
@@ -581,9 +565,11 @@ href="./history/">
 """
 
 
+
     html += """
 
 </div>
+
 
 </div>
 
@@ -596,6 +582,7 @@ href="./history/">
 """
 
 
+
     path.write_text(
 
         html,
@@ -603,6 +590,7 @@ href="./history/">
         encoding="utf-8"
 
     )
+
 
 
 
@@ -642,11 +630,7 @@ def create_history_index():
         if images:
 
 
-            cover=(
-
-                f"./{item}/{images[0].name}"
-
-            )
+            cover=f"./{item}/{images[0].name}"
 
 
 
@@ -747,9 +731,7 @@ margin-bottom:20px;
 
 max-width:900px;
 
-margin-left:auto;
-
-margin-right:auto;
+margin:auto;
 
 box-shadow:
 
@@ -788,7 +770,6 @@ color:#333;
 <body>
 
 
-
 <h1>
 
 🌄 山图集历史
@@ -809,9 +790,10 @@ color:#333;
 """
 
 
+
     (
 
-        HISTORY_DIR / "index.html"
+        HISTORY_DIR/"index.html"
 
     ).write_text(
 
@@ -838,63 +820,80 @@ def create_notify(
 
         day,
 
-        image_count
+        images
 
 ):
 
 
-    history_count = len(
+    history_count=len(
 
         get_history()
 
     )
 
 
-    today_url = (
 
-        f"{SITE_URL}"
+    today_url=(
 
-        f"/history/"
+        f"{SITE_URL}/history/"
 
         f"{year}-{month:02d}-{day:02d}/"
 
     )
 
 
-    notify = f"""
-🌄 山图集更新成功
+    home_url=SITE_URL
 
 
-📅 日期：
+
+    cover_url=(
+
+        f"{today_url}{images[0]}"
+
+    )
+
+
+
+    notify=f"""
+# 🌄 山图集更新成功
+
+
+## 📅 日期
 
 {year}-{month:02d}-{day:02d}
 
 
-🖼 图片数量：
+## 🖼 图片数量
 
-{image_count} 张
+{len(images)} 张
 
 
-📚 历史记录：
+## 📚 历史记录
 
 {history_count} 期
 
 
-🔗 今日查看：
+## 🖼 今日封面
+
+{cover_url}
+
+
+## 🔗 今日查看
 
 {today_url}
 
 
-🏠 首页：
+## 🏠 网站首页
 
-{SITE_URL}
+{home_url}
+
+
+> 自动生成于 GitHub Actions
 """
 
 
     (
-
-        RESULT_DIR / "notify.txt"
-
+        RESULT_DIR/"notify.txt"
     ).write_text(
 
         notify,
@@ -902,6 +901,19 @@ def create_notify(
         encoding="utf-8"
 
     )
+
+
+
+    (
+        RESULT_DIR/"cover.txt"
+    ).write_text(
+
+        cover_url,
+
+        encoding="utf-8"
+
+    )
+
 
 
 
@@ -971,7 +983,7 @@ def main():
 
     today_dir=(
 
-        HISTORY_DIR /
+        HISTORY_DIR/
 
         f"{year}-{month:02d}-{day:02d}"
 
@@ -1001,8 +1013,6 @@ def main():
 
 
 
-
-
     if not images:
 
 
@@ -1021,10 +1031,6 @@ def main():
 
 
 
-
-    # 今日页面
-
-
     create_html(
 
         today_dir/"index.html",
@@ -1036,20 +1042,6 @@ def main():
     )
 
 
-
-
-
-    history_count=len(
-
-        get_history()
-
-    )
-
-
-
-
-
-    # 首页
 
 
     create_html(
@@ -1069,12 +1061,8 @@ def main():
 
 
 
-
     create_history_index()
 
-
-
-    # PushDeer消息
 
 
     create_notify(
@@ -1085,7 +1073,7 @@ def main():
 
         day,
 
-        len(images)
+        images
 
     )
 
@@ -1109,20 +1097,12 @@ def main():
 
     print("生成完成")
 
-    print(
-
-        "图片数量:",
-
-        len(images)
-
-    )
-
     print("====================")
 
 
 
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
 
     main()
