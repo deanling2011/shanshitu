@@ -6,8 +6,10 @@ on:
   workflow_dispatch:
 
   schedule:
+
     # 北京时间每天09:00
     # UTC+8
+
     - cron: "0 1 * * *"
 
 
@@ -29,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
 
 
-    # GitHub Pages标准环境
     environment:
 
       name: github-pages
@@ -41,14 +42,21 @@ jobs:
     steps:
 
 
+
       # 拉取代码
+
       - name: Checkout
+
         uses: actions/checkout@v4
 
 
 
+
+
       # Python环境
+
       - name: Setup Python
+
         uses: actions/setup-python@v5
 
         with:
@@ -57,8 +65,12 @@ jobs:
 
 
 
+
+
       # Python缓存
+
       - name: Cache Python packages
+
         uses: actions/cache@v4
 
         with:
@@ -69,42 +81,65 @@ jobs:
 
 
 
+
+
+
       # 安装依赖
+
       - name: Install requirements
+
         run: |
 
           pip install -r shantu/requirements.txt
 
 
 
+
+
       # 执行PDF解析
+
       - name: Run PDF parser
+
         run: |
 
           python shantu/scripts/build_index.py
 
 
 
-      # 判断是否生成新内容
+
+
+
+      # 判断是否生成
+
       - name: Check result
 
         id: check
 
         run: |
 
+
           if [ -f "shantu/result/status.txt" ]; then
+
 
             echo "found=true" >> $GITHUB_OUTPUT
 
+
           else
 
+
             echo "found=false" >> $GITHUB_OUTPUT
+
 
           fi
 
 
 
-      # 准备网页
+
+
+
+
+      # 准备Pages
+
       - name: Prepare Pages
 
         if: steps.check.outputs.found == 'true'
@@ -119,7 +154,12 @@ jobs:
 
 
 
-      # 上传网页
+
+
+
+
+      # 上传Pages
+
       - name: Upload Pages artifact
 
         if: steps.check.outputs.found == 'true'
@@ -132,7 +172,11 @@ jobs:
 
 
 
-      # 发布网页
+
+
+
+      # 发布Pages
+
       - name: Deploy to GitHub Pages
 
         if: steps.check.outputs.found == 'true'
@@ -143,7 +187,12 @@ jobs:
 
 
 
+
+
+
+
       # PushDeer通知
+
       - name: PushDeer Notify
 
         if: steps.check.outputs.found == 'true'
@@ -151,8 +200,38 @@ jobs:
         run: |
 
 
+          echo "发送PushDeer通知"
+
+
+
+          MESSAGE=$(cat shantu/result/notify.txt)
+
+
+
           curl "https://api2.pushdeer.com/message/push" \
           -G \
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
-          --data-urlencode "text=山图集更新提醒" \
-          --data-urlencode "desp=今天的山图集已经生成：https://deanling2011.github.io/shanshitu/"
+          --data-urlencode "text=🌄 山图集更新成功" \
+          --data-urlencode "desp=${MESSAGE}"
+
+
+
+
+
+
+
+
+      # 失败通知
+
+      - name: PushDeer Failed Notify
+
+        if: failure()
+
+        run: |
+
+
+          curl "https://api2.pushdeer.com/message/push" \
+          -G \
+          --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
+          --data-urlencode "text=❌ 山图集更新失败" \
+          --data-urlencode "desp=GitHub Actions执行失败，请检查日志： https://github.com/${{ github.repository }}/actions"
