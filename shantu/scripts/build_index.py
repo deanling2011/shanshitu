@@ -812,11 +812,6 @@ color:#333;
 # =====================
 
 
-# =====================
-# PushDeer通知
-# =====================
-
-
 def create_notify(
 
         year,
@@ -830,23 +825,9 @@ def create_notify(
 ):
 
 
-    history_count = len(
-        get_history()
-    )
-
-
     today_date = (
 
         f"{year}-{month:02d}-{day:02d}"
-
-    )
-
-
-    today_url = (
-
-        f"{SITE_URL}/history/"
-
-        f"{today_date}/"
 
     )
 
@@ -855,14 +836,16 @@ def create_notify(
 
 
 
-    # 第一张作为封面
+    # 第一张图片作为封面
 
     if images:
 
 
         cover_url = (
 
-            f"{today_url}"
+            f"{SITE_URL}/history/"
+
+            f"{today_date}/"
 
             f"{images[0]}"
 
@@ -887,9 +870,6 @@ def create_notify(
 
 
     notify=f"""
-# 🌄 山图集每日更新
-
-
 ## 🏔 今日封面
 
 
@@ -912,38 +892,22 @@ def create_notify(
 
 
 
-📚 **历史记录**
-
-{history_count} 期
-
-
-
 ⏰ **生成时间**
 
 {now}
 
 
 
-🔗 **今日查看**
-
-{today_url}
-
-
-
-🏠 **网站首页**
+🏠 **山师图集**
 
 {home_url}
-
-
-
----
-
-> 自动生成于 GitHub Actions
 """
+
 
 
     (
         RESULT_DIR / "notify.txt"
+
     ).write_text(
 
         notify,
@@ -953,8 +917,6 @@ def create_notify(
     )
 
 
-
-    # 保存封面地址备用
 
     (
         RESULT_DIR / "cover.txt"
@@ -966,6 +928,9 @@ def create_notify(
         encoding="utf-8"
 
     )
+
+
+
 
 
 
