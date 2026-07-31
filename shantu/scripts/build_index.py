@@ -142,13 +142,13 @@ def search_pdf(
     images = []
 
 
-    doc = fitz.open(
-        PDF_PATH
-    )
+    doc = fitz.open(PDF_PATH)
 
 
     found_today = False
 
+
+    empty_page_count = 0
 
 
     date_pattern = re.compile(
@@ -159,12 +159,10 @@ def search_pdf(
 
 
 
-
     for index, page in enumerate(doc):
 
 
         text = page.get_text()
-
 
 
         clean = re.sub(
@@ -178,34 +176,37 @@ def search_pdf(
         )
 
 
-
         current_is_today = (
 
             regex.search(text)
 
-            or
-
-            regex.search(clean)
+            or regex.search(clean)
 
         )
 
 
 
-        # 只检查页面顶部文字
+        # 页面顶部日期
 
-        # 避免图片说明里面的日期干扰
-
-        header_text = text[:300]
+        header = text[:500]
 
 
-        has_new_date = (
+        has_date = (
 
-            date_pattern.search(header_text)
+            date_pattern.search(header)
 
         )
 
 
 
+        print(
+            "检查页面:",
+            index + 1
+        )
+
+
+
+        # 找到当天
 
         if current_is_today:
 
@@ -215,7 +216,7 @@ def search_pdf(
 
             print(
 
-                "找到日期页面:",
+                "发现目标日期:",
 
                 index + 1
 
@@ -223,89 +224,90 @@ def search_pdf(
 
 
 
+        if not found_today:
 
-
-        if found_today:
-
-
-
-            if (
-
-                index > 0
-
-                and has_new_date
-
-                and not current_is_today
-
-            ):
-
-
-                print(
-
-                    "发现下一日期，停止:",
-
-                    index + 1
-
-                )
-
-
-                break
+            continue
 
 
 
+        # 已经开始抓取
+
+
+        # 如果出现新的日期
+
+        # 并且不是当天
+
+        if (
+
+            has_date
+
+            and
+
+            not current_is_today
+
+            and
+
+            index > 0
+
+        ):
 
 
             print(
 
-                "保存页面:",
+                "发现下一日期，结束:",
 
                 index + 1
 
             )
 
-
-
-            pix = page.get_pixmap(
-
-                dpi=180
-
-            )
+            break
 
 
 
-            name = (
-
-                f"shantu-{month:02d}-{day:02d}"
-
-                f"-page-{index+1}.jpg"
-
-            )
 
 
-
-            pix.save(
-
-                str(
-
-                    save_dir / name
-
-                )
-
-            )
+        # 保存页面
 
 
+        pix = page.get_pixmap(
 
-            images.append(
+            dpi=180
 
-                name
+        )
 
-            )
+
+        name=(
+
+            f"shantu-{month:02d}-{day:02d}"
+
+            f"-page-{index+1}.jpg"
+
+        )
+
+
+        pix.save(
+
+            str(save_dir/name)
+
+        )
+
+
+        images.append(name)
+
+
+
+        print(
+
+            "保存:",
+
+            name
+
+        )
 
 
 
 
     doc.close()
-
 
 
     return images
