@@ -125,6 +125,11 @@ def build_date_regex(month, day):
 # =====================
 
 
+# =====================
+# PDF解析（支持跨页）
+# =====================
+
+
 def search_pdf(
 
         regex,
@@ -142,14 +147,33 @@ def search_pdf(
 
 
     doc = fitz.open(
+
         PDF_PATH
+
     )
+
+
+    # 是否已经找到当天内容
+
+    found_today = False
+
+
+
+    # 日期检测
+
+    date_pattern = re.compile(
+
+        r"\d{4}\s*年\s*\d+\s*月\s*\d+\s*日"
+
+    )
+
 
 
     for index, page in enumerate(doc):
 
 
         text = page.get_text()
+
 
 
         clean = re.sub(
@@ -164,7 +188,9 @@ def search_pdf(
 
 
 
-        if (
+        # 当前页是否包含目标日期
+
+        current_is_today = (
 
             regex.search(text)
 
@@ -172,13 +198,94 @@ def search_pdf(
 
             regex.search(clean)
 
-        ):
+        )
+
+
+
+        # 当前页是否包含其他日期
+
+        has_other_date = (
+
+            date_pattern.search(text)
+
+        )
+
+
+
+
+        # =====================
+        # 找到当天
+        # =====================
+
+
+        if current_is_today:
+
+
+            found_today = True
 
 
             print(
-                "找到页面:",
+
+                "找到日期页面:",
+
                 index + 1
+
             )
+
+
+
+
+        # =====================
+        # 已经进入当天内容
+        # =====================
+
+
+        if found_today:
+
+
+
+            # 如果不是第一页，
+            # 并且出现新的日期
+            # 说明进入下一天
+
+
+            if (
+
+                index > 0
+
+                and
+
+                has_other_date
+
+                and
+
+                not current_is_today
+
+            ):
+
+
+                print(
+
+                    "发现下一日期，停止抓取:",
+
+                    index + 1
+
+                )
+
+
+                break
+
+
+
+
+            print(
+
+                "保存页面:",
+
+                index + 1
+
+            )
+
 
 
             pix = page.get_pixmap(
@@ -186,6 +293,7 @@ def search_pdf(
                 dpi=180
 
             )
+
 
 
             name = (
@@ -197,26 +305,39 @@ def search_pdf(
             )
 
 
+
             pix.save(
 
                 str(
+
                     save_dir / name
+
                 )
 
             )
 
 
-            images.append(name)
+            images.append(
+
+                name
+
+            )
 
 
             print(
+
                 "生成图片:",
+
                 name
+
             )
 
 
 
+
+
     doc.close()
+
 
 
     return images
