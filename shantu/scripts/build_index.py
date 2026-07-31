@@ -13,13 +13,13 @@ import fitz
 # =====================
 
 
-TEST_MODE = False
+TEST_MODE = True
 
 
 TEST_DATE = (
     2026,
     7,
-    24
+    31
 )
 
 
@@ -144,29 +144,32 @@ def search_pdf(
 
     doc = fitz.open(PDF_PATH)
 
-    collecting=False
 
-
-    date_pattern=re.compile(
+    date_pattern = re.compile(
 
         r"(\d{4})\s*年\s*(\d+)\s*月\s*(\d+)\s*日"
 
     )
 
 
+    collecting=False
+
     count=1
+
 
 
     for index,page in enumerate(doc):
 
 
-        text=page.get_text()
+        text = page.get_text()
 
 
         dates=date_pattern.findall(text)
 
 
-        page_today=False
+
+        is_target=False
+
 
 
         for y,m,d in dates:
@@ -182,23 +185,25 @@ def search_pdf(
 
             ):
 
-                page_today=True
+                is_target=True
+
+                print(
+
+                    "发现",
+
+                    y,
+
+                    "年目标日期",
+
+                    index+1
+
+                )
 
 
 
-        if page_today:
-
+        if is_target:
 
             collecting=True
-
-
-            print(
-
-                "发现历史日期:",
-
-                index+1
-
-            )
 
 
 
@@ -240,6 +245,15 @@ def search_pdf(
 
 
             images.append(name)
+
+
+            print(
+
+                "保存:",
+
+                name
+
+            )
 
 
             count+=1
