@@ -94,7 +94,6 @@ def init_dir():
         exist_ok=True
     )
 
-
     HISTORY_DIR.mkdir(
         exist_ok=True
     )
@@ -122,11 +121,7 @@ def build_date_regex(month, day):
 
 # =====================
 # PDF解析
-# =====================
-
-
-# =====================
-# PDF解析（支持跨页）
+# 支持跨页图片
 # =====================
 
 
@@ -143,23 +138,19 @@ def search_pdf(
 ):
 
 
-    images = []
+    images=[]
 
 
     doc = fitz.open(
-
         PDF_PATH
-
     )
 
 
-    # 是否已经找到当天内容
-
-    found_today = False
+    found_today=False
 
 
 
-    # 日期检测
+    # 日期格式
 
     date_pattern = re.compile(
 
@@ -169,7 +160,7 @@ def search_pdf(
 
 
 
-    for index, page in enumerate(doc):
+    for index,page in enumerate(doc):
 
 
         text = page.get_text()
@@ -188,8 +179,6 @@ def search_pdf(
 
 
 
-        # 当前页是否包含目标日期
-
         current_is_today = (
 
             regex.search(text)
@@ -202,78 +191,61 @@ def search_pdf(
 
 
 
-        # 当前页是否包含其他日期
+        # 只检测页面前300字符
 
-        has_other_date = (
+        # 避免图片说明中的日期误判
 
-            date_pattern.search(text)
+        header_text = text[:300]
+
+
+
+        has_new_date = (
+
+            date_pattern.search(header_text)
 
         )
 
 
 
 
-        # =====================
-        # 找到当天
-        # =====================
-
 
         if current_is_today:
 
 
-            found_today = True
+            found_today=True
 
 
             print(
-
-                "找到日期页面:",
-
-                index + 1
-
+                "找到日期:",
+                index+1
             )
 
 
 
 
-        # =====================
-        # 已经进入当天内容
-        # =====================
-
 
         if found_today:
-
-
-
-            # 如果不是第一页，
-            # 并且出现新的日期
-            # 说明进入下一天
 
 
             if (
 
                 index > 0
 
-                and
+                and has_new_date
 
-                has_other_date
-
-                and
-
-                not current_is_today
+                and not current_is_today
 
             ):
 
 
                 print(
 
-                    "发现下一日期，停止抓取:",
-
-                    index + 1
+                    "发现下一日期，停止"
 
                 )
 
-
                 break
+
 
 
 
@@ -282,7 +254,7 @@ def search_pdf(
 
                 "保存页面:",
 
-                index + 1
+                index+1
 
             )
 
@@ -296,7 +268,7 @@ def search_pdf(
 
 
 
-            name = (
+            name=(
 
                 f"shantu-{month:02d}-{day:02d}"
 
@@ -308,30 +280,12 @@ def search_pdf(
 
             pix.save(
 
-                str(
-
-                    save_dir / name
-
-                )
+                str(save_dir/name)
 
             )
 
 
-            images.append(
-
-                name
-
-            )
-
-
-            print(
-
-                "生成图片:",
-
-                name
-
-            )
-
+            images.append(name)
 
 
 
@@ -341,14 +295,7 @@ def search_pdf(
 
 
     return images
-
-
-
-
-
-
-
-# =====================
+    # =====================
 # HTML生成
 # =====================
 
@@ -361,9 +308,7 @@ def create_html(
 
         images,
 
-        image_prefix="./",
-
-        show_history=False
+        image_prefix="./"
 
 ):
 
@@ -395,11 +340,7 @@ content="width=device-width,initial-scale=1">
 
 
 
-<title>
-
-{title}
-
-</title>
+<title>{title}</title>
 
 
 
@@ -450,7 +391,13 @@ h1{{
 
 text-align:center;
 
-font-size:34px;
+font-size:32px;
+
+white-space:nowrap;
+
+overflow:hidden;
+
+text-overflow:ellipsis;
 
 }}
 
@@ -474,7 +421,7 @@ img{{
 
 width:100%;
 
-margin-top:30px;
+margin-top:25px;
 
 border-radius:14px;
 
@@ -484,13 +431,53 @@ display:block;
 
 
 
-a{{
 
-text-decoration:none;
+@media(max-width:600px){
 
-color:#333;
+
+body{{
+
+padding:10px;
 
 }}
+
+
+
+.box{{
+
+padding:15px;
+
+}}
+
+
+
+h1{{
+
+font-size:26px;
+
+}}
+
+
+
+.info{{
+
+font-size:16px;
+
+}}
+
+
+
+img{{
+
+margin-top:18px;
+
+}}
+
+
+
+}
+
+
 
 
 </style>
@@ -518,7 +505,6 @@ color:#333;
 
 
 
-
 <div class="info">
 
 
@@ -532,11 +518,10 @@ color:#333;
 
 
 
+
 """
 
 
-
-    # 图片展示
 
     for img in images:
 
@@ -581,7 +566,14 @@ decoding="async"
         encoding="utf-8"
 
     )
-    # =====================
+
+
+
+
+
+
+
+# =====================
 # 历史首页
 # =====================
 
@@ -589,10 +581,11 @@ decoding="async"
 def create_history_index():
 
 
-    cards = []
+    cards=[]
 
 
-    history = sorted(
+
+    history=sorted(
 
         [
 
@@ -610,29 +603,31 @@ def create_history_index():
 
 
 
+
     for item in history:
+
 
 
         folder = HISTORY_DIR / item
 
 
-        images = list(
+
+        images=list(
 
             folder.glob("*.jpg")
 
         )
 
 
-        cover = ""
+
+        if not images:
+
+            continue
 
 
-        if images:
 
-            cover = (
+        cover=f"./{item}/{images[0].name}"
 
-                f"./{item}/{images[0].name}"
-
-            )
 
 
 
@@ -652,7 +647,6 @@ src="{cover}"
 
 loading="lazy"
 
-
 >
 
 
@@ -665,15 +659,6 @@ loading="lazy"
 
 
 
-<p>
-
-🖼 图片数量：
-
-{len(images)} 张
-
-</p>
-
-
 </a>
 
 
@@ -682,6 +667,7 @@ loading="lazy"
 """
 
         )
+
 
 
 
@@ -705,6 +691,7 @@ loading="lazy"
 content="width=device-width,initial-scale=1">
 
 
+
 <title>
 
 山图集历史
@@ -724,7 +711,7 @@ font-family:
 
 Microsoft YaHei;
 
-padding:20px;
+padding:15px;
 
 }}
 
@@ -784,10 +771,9 @@ color:#333;
 <body>
 
 
-
 <h1>
 
-🌄 山图集历史
+🌄 山图集
 
 </h1>
 
@@ -808,7 +794,7 @@ color:#333;
 
     (
 
-        HISTORY_DIR / "index.html"
+        HISTORY_DIR/"index.html"
 
     ).write_text(
 
@@ -842,7 +828,8 @@ def create_notify(
 ):
 
 
-    today_date = (
+
+    today_date=(
 
         f"{year}-{month:02d}-{day:02d}"
 
@@ -850,7 +837,7 @@ def create_notify(
 
 
 
-    today_url = (
+    today_url=(
 
         f"{SITE_URL}/history/"
 
@@ -860,18 +847,14 @@ def create_notify(
 
 
 
-    home_url = SITE_URL
+    home_url=SITE_URL
 
 
 
 
-    # 今日第一张图片作为封面
+    cover_url=(
 
-    cover_url = (
-
-        f"{today_url}"
-
-        f"{images[0]}"
+        today_url + images[0]
 
         if images
 
@@ -882,7 +865,8 @@ def create_notify(
 
 
 
-    now = get_beijing_time().strftime(
+
+    now=get_beijing_time().strftime(
 
         "%Y-%m-%d %H:%M:%S"
 
@@ -892,7 +876,9 @@ def create_notify(
 
 
 
-    notify = f"""
+
+    notify=f"""
+
 ## 🏔 今日封面
 
 
@@ -901,8 +887,6 @@ def create_notify(
 
 
 ---
-
-
 
 
 
@@ -915,13 +899,14 @@ def create_notify(
 🏠 **山图集主页**
 
 {home_url}
+
 """
 
 
 
     (
 
-        RESULT_DIR / "notify.txt"
+        RESULT_DIR/"notify.txt"
 
     ).write_text(
 
@@ -930,23 +915,6 @@ def create_notify(
         encoding="utf-8"
 
     )
-
-
-
-
-    (
-
-        RESULT_DIR / "cover.txt"
-
-    ).write_text(
-
-        cover_url,
-
-        encoding="utf-8"
-
-    )
-
-
 
 
 
@@ -972,45 +940,19 @@ def main():
 
 
 
-    today = get_beijing_time()
+    today=get_beijing_time()
 
 
 
-    year = today.year
+    year=today.year
 
-    month = today.month
+    month=today.month
 
-    day = today.day
-
-
-
-
-    print(
-
-        "当前日期:",
-
-        today
-
-    )
+    day=today.day
 
 
 
-
-
-    if not PDF_PATH.exists():
-
-
-        raise FileNotFoundError(
-
-            f"找不到PDF:{PDF_PATH}"
-
-        )
-
-
-
-
-
-    regex = build_date_regex(
+    regex=build_date_regex(
 
         month,
 
@@ -1021,8 +963,7 @@ def main():
 
 
 
-
-    today_dir = (
+    today_dir=(
 
         HISTORY_DIR /
 
@@ -1041,8 +982,7 @@ def main():
 
 
 
-
-    images = search_pdf(
+    images=search_pdf(
 
         regex,
 
@@ -1058,20 +998,17 @@ def main():
 
 
 
-
-
     if not images:
 
 
         print(
 
-            "今天没有山图"
+            "今天没有内容"
 
         )
 
 
         create_history_index()
-
 
         return
 
@@ -1079,15 +1016,20 @@ def main():
 
 
 
+    title=(
+
+        f"🌄 山图集 {month}月{day}日"
+
+    )
 
 
-    # 今日页面
+
 
     create_html(
 
-        today_dir / "index.html",
+        today_dir/"index.html",
 
-        f"🌄 山图集 {month}月{day}日",
+        title,
 
         images
 
@@ -1097,15 +1039,11 @@ def main():
 
 
 
-
-
-    # 首页
-
     create_html(
 
-        RESULT_DIR / "index.html",
+        RESULT_DIR/"index.html",
 
-        f"🌄 山图集 {month}月{day}日",
+        title,
 
         images,
 
@@ -1117,18 +1055,10 @@ def main():
 
 
 
-
-
-    # 历史页面
-
     create_history_index()
 
 
 
-
-
-
-    # PushDeer
 
     create_notify(
 
@@ -1146,10 +1076,9 @@ def main():
 
 
 
-
     (
 
-        RESULT_DIR / "status.txt"
+        RESULT_DIR/"status.txt"
 
     ).write_text(
 
@@ -1158,7 +1087,6 @@ def main():
         encoding="utf-8"
 
     )
-
 
 
 
@@ -1183,8 +1111,6 @@ def main():
 
 
 
-
-if __name__ == "__main__":
-
+if __name__=="__main__":
 
     main()
