@@ -522,15 +522,6 @@ color:#333;
 <div class="info">
 
 
-🖼 今日图片：
-
-{len(images)} 张
-
-
-
-<br>
-
-
 ⏰ 更新时间：
 
 {now}
@@ -912,9 +903,6 @@ def create_notify(
 ---
 
 
-🖼 **图片数量**
-
-{len(images)} 张
 
 
 
