@@ -149,11 +149,19 @@ def search_pdf(
 
 
 
-    date_pattern = re.compile(
+    target_text = (
 
-        r"\d{4}\s*年\s*\d+\s*月\s*\d+\s*日"
+        f"{month}月{day}日"
 
     )
+
+
+    date_pattern = re.compile(
+
+        r"(\d{4})\s*年\s*(\d+)\s*月\s*(\d+)\s*日"
+
+    )
+
 
 
 
@@ -176,39 +184,73 @@ def search_pdf(
 
 
 
-        # 当前页日期
 
         dates = date_pattern.findall(text)
 
 
 
-        current_is_today = (
+        page_is_today=False
+
+
+        page_is_new_day=False
+
+
+
+
+        for y,m,d in dates:
+
+
+            m=int(m)
+
+            d=int(d)
+
+
+            if (
+
+                m == month
+
+                and d == day
+
+            ):
+
+
+                page_is_today=True
+
+
+            elif found_today:
+
+
+                page_is_new_day=True
+
+
+
+
+
+
+        # 找到当天
+
+        if (
 
             regex.search(text)
 
-            or
+            or regex.search(clean)
 
-            regex.search(clean)
+            or page_is_today
 
-        )
-
-
-
-
-        # =====================
-        # 找到目标日期
-        # =====================
-
-        if current_is_today:
+        ):
 
 
             found_today=True
 
 
             print(
-                "找到目标日期:",
+
+                "当天页面:",
+
                 index+1
+
             )
+
 
 
 
@@ -222,60 +264,27 @@ def search_pdf(
 
 
 
-        # =====================
-        # 判断是否进入下一篇
-        # =====================
+        # 下一天停止
 
-
-        if dates:
-
-
-            page_date = dates[0]
+        if page_is_new_day:
 
 
             print(
 
-                "页面日期:",
+                "发现下一日期:",
 
-                page_date
+                index+1
 
             )
 
 
-
-            # 不是目标日期
-
-            if not current_is_today:
-
-
-                print(
-
-                    "发现下一篇，停止:",
-
-                    index+1
-
-                )
-
-
-                break
+            break
 
 
 
 
 
-        # =====================
-        # 保存整页
-        # =====================
-
-
-        print(
-
-            "保存页面:",
-
-            index+1
-
-        )
-
+        # 保存页面
 
 
         pix = page.get_pixmap(
@@ -285,14 +294,14 @@ def search_pdf(
         )
 
 
-
         name=(
 
             f"shantu-{month:02d}-{day:02d}"
 
-            f"-{len(images)+1:03d}.jpg"
+            f"-page-{index+1}.jpg"
 
         )
+
 
 
         pix.save(
@@ -303,6 +312,17 @@ def search_pdf(
 
 
         images.append(name)
+
+
+
+        print(
+
+            "保存:",
+
+            name
+
+        )
+
 
 
 
