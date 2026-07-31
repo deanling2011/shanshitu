@@ -125,7 +125,131 @@ def build_date_regex(month, day):
 # 支持跨页
 # =====================
 
+# =====================
+# PDF解析
+# =====================
 
+
+def search_pdf(
+
+        target_month,
+
+        target_day,
+
+        save_dir
+
+):
+
+    images=[]
+
+    doc = fitz.open(PDF_PATH)
+
+    collecting=False
+
+
+    date_pattern=re.compile(
+
+        r"(\d{4})\s*年\s*(\d+)\s*月\s*(\d+)\s*日"
+
+    )
+
+
+    count=1
+
+
+    for index,page in enumerate(doc):
+
+
+        text=page.get_text()
+
+
+        dates=date_pattern.findall(text)
+
+
+        page_today=False
+
+
+        for y,m,d in dates:
+
+
+            if (
+
+                int(m)==target_month
+
+                and
+
+                int(d)==target_day
+
+            ):
+
+                page_today=True
+
+
+
+        if page_today:
+
+
+            collecting=True
+
+
+            print(
+
+                "发现历史日期:",
+
+                index+1
+
+            )
+
+
+
+        elif dates and collecting:
+
+
+            collecting=False
+
+
+
+        if collecting:
+
+
+            pix=page.get_pixmap(
+
+                dpi=180
+
+            )
+
+
+            name=(
+
+                f"shantu-"
+
+                f"{target_month:02d}-"
+
+                f"{target_day:02d}-"
+
+                f"{count:03d}.jpg"
+
+            )
+
+
+            pix.save(
+
+                str(save_dir/name)
+
+            )
+
+
+            images.append(name)
+
+
+            count+=1
+
+
+
+    doc.close()
+
+
+    return images
 
 
 
