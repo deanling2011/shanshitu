@@ -288,7 +288,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
       for(var i=1;i<=30;i++){
         var seq=(i<10?'00'+i:(i<100?'0'+i:''+i));
         var name=md+'-'+y+'-'+seq+'.jpg';
-        html+='<div class="item"><img loading="lazy" src="./'+md+'/'+name+'" onerror="this.parentNode.style.display=\'none\'"></div>';
+        html+='<div class="item"><img loading="lazy" src="./history/'+md+'/'+name+'" onerror="this.parentNode.style.display=\'none\'"></div>';
       }
       html+='</div>';
     });
