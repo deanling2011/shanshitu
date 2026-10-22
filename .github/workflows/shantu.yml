@@ -16,10 +16,8 @@ on:
 
 permissions:
 
-  contents: read
-
+  contents: write
   pages: write
-
   id-token: write
 
 
@@ -97,7 +95,7 @@ jobs:
 
 
 
-      # 执行解析
+      # 执行解析（增量模式：只处理当天月日，已有图片自动跳过）
 
       - name: Run PDF parser
 
@@ -112,7 +110,7 @@ jobs:
 
 
 
-      # 判断是否生成内容
+      # 判断今天是否有内容
 
       - name: Check result
 
@@ -120,7 +118,7 @@ jobs:
 
         run: |
 
-          if [ -f "shantu/result/status.txt" ]; then
+          if [ -f "shantu/result/status.txt" ] && [ -s "shantu/result/status.txt" ]; then
 
             echo "found=true" >> $GITHUB_OUTPUT
 
@@ -137,22 +135,29 @@ jobs:
 
 
 
-      # 查看生成结果
+      # 提交新生成的图片归档
 
-      - name: Check generated files
-
-        if: steps.check.outputs.found == 'true'
+      - name: Commit archive
 
         run: |
 
-          echo "===== 生成文件 ====="
+          git config user.name "github-actions[bot]"
 
-          find shantu/result -type f
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          git add shantu/result/history || true
 
-          echo "===== PushDeer内容 ====="
+          if git diff --cached --quiet; then
 
-          cat shantu/result/notify.txt
+            echo "No changes"
+
+          else
+
+            git commit -m "shantu archive $(date -u -d '+8 hours' '+%Y-%m-%d')"
+
+            git push
+
+          fi
 
 
 
@@ -161,11 +166,9 @@ jobs:
 
       - name: Prepare Pages
 
-        if: steps.check.outputs.found == 'true'
-
         run: |
 
-          mkdir public
+          mkdir -p public
 
           cp -r shantu/result/* public/
 
@@ -175,8 +178,6 @@ jobs:
       # 上传 Pages
 
       - name: Upload Pages artifact
-
-        if: steps.check.outputs.found == 'true'
 
         uses: actions/upload-pages-artifact@v3
 
@@ -191,8 +192,6 @@ jobs:
 
       - name: Deploy to GitHub Pages
 
-        if: steps.check.outputs.found == 'true'
-
         id: deployment
 
         uses: actions/deploy-pages@v4
@@ -200,7 +199,7 @@ jobs:
 
 
 
-      # PushDeer通知
+      # PushDeer通知（仅今天有山图时）
 
       - name: PushDeer Notify
 
@@ -241,4 +240,5 @@ jobs:
           -G \
           --data-urlencode "pushkey=${{ secrets.PUSHDEER_KEY }}" \
           --data-urlencode "text=❌ 山图集运行失败" \
-          --data-urlencode "desp=GitHub Actions执行失败，请检查日志：https://github.com/${{ github.repository }}/actions"
+          --data-urlencode "desp=GitHub Actions执行失败，请检查日志：https://github.com/${{ github.repository }}/actions" \
+          --data-urlencode "type=markdown"
