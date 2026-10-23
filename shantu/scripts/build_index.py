@@ -203,7 +203,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
     </div>
   </div>
 
-  <div class="section-title">按月浏览</div>
+  <div class="section-title">按月浏览<span class="hint" id="navHint"></span></div>
   <div class="nav-month" id="navMonth"></div>
   <div class="section-title">选择日期<span class="hint">带金点 = 有图集</span></div>
   <div class="day-grid" id="dayGrid"></div>
@@ -278,6 +278,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
     var t=new Date();
     var firstDay=new Date(t.getFullYear(),curMonth,1).getDay();
     var days=new Date(t.getFullYear(),curMonth+1,0).getDate();
+    document.getElementById('navHint').textContent = (curMonth+1)+'月 · 共 '+days+' 天';
     for(var i=0;i<firstDay;i++){ var e=document.createElement('div'); e.className='day-cell empty'; grid.appendChild(e); }
     for(var d=1;d<=days;d++){
       (function(day){
