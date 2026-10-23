@@ -5,6 +5,9 @@ on:
 
   workflow_dispatch:
 
+  push:
+    paths: ['.github/workflows/shantu.yml', 'shantu/scripts/**']
+
   schedule:
 
     # 北京时间每天00:20
