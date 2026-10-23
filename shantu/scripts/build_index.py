@@ -193,7 +193,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
   .day-cell .lunar.fest { color:#e0a06a; }
   .day-cell .lunar.fest-red { color:#e05252; }
   .day-cell .term-pill { font-size:10px; color:#6fce9d; background:#1d3a2e; padding:1px 5px; border-radius:8px; margin-top:3px; line-height:1.3; }
-  .day-cell .holiday-tag { position:absolute; top:3px; left:3px; font-size:10px; line-height:1; padding:2px 4px; border-radius:5px; }
+  .day-cell .holiday-tag { position:absolute; top:2px; left:2px; font-size:9px; line-height:1; padding:1px 3px; border-radius:4px; }
   .day-cell .holiday-tag.rest { color:#85b7eb; background:#17324a; }
   .day-cell .holiday-tag.work { color:#f0a06a; background:#3a2418; }
   .day-cell .dot-ind { position:absolute; top:6px; right:6px; width:5px; height:5px; border-radius:50%; background:var(--accent); }
