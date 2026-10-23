@@ -249,6 +249,12 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
         b.onclick=function(){ curMonth=m; buildMonthNav(); renderGrid(); };
         nav.appendChild(b); })(i);
     }
+    // 将当前月按钮滚动到可视区域中间
+    var active = nav.querySelector('button.active');
+    if (active) {
+      var target = active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2;
+      nav.scrollLeft = Math.max(0, target);
+    }
   }
 
   function renderGrid(){
