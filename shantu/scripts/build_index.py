@@ -396,7 +396,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
       document.getElementById('footRange').textContent = minD + ' ~ ' + maxD;
     }
 
-    buildMonthNav(); renderGrid();
+    buildMonthNav(); renderGrid(); showCollection(md);
   }
 
   function buildMonthNav(){
