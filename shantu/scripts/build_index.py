@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-山图集「历史上的今天」跨年聚合脚本。
+山师图集「历史上的今天」跨年聚合脚本。
 
 功能：
   1. 解析 山图集.pdf，按「月-日」聚合所有年份的页面（同月日跨年）
@@ -128,7 +128,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>山图集 · 历史上的今天</title>
+<title>山师图集 · 历史上的今天</title>
 <style>
   :root {
     --bg: #0f1115; --bg-soft: #161922; --card: #1b1f2a; --card-hover: #222837;
@@ -191,7 +191,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand">山图集<span style="color:var(--accent)">·</span><small>历史上的今天</small></div>
+    <div class="brand">山师图集<span style="color:var(--accent)">·</span><small>历史上的今天</small></div>
   </header>
 
   <div class="today-card">
@@ -199,13 +199,13 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
     <div class="today-date" id="todayDate"></div>
     <div class="today-meta" id="todayMeta">加载中…</div>
     <div class="today-actions">
-      <a class="btn primary" id="todayRead" href="#">查看今日山图</a>
+      <a class="btn primary" id="todayRead" href="#">查看今日图集</a>
     </div>
   </div>
 
   <div class="section-title">按月浏览</div>
   <div class="nav-month" id="navMonth"></div>
-  <div class="section-title">选择日期<span class="hint">带金点 = 有山图</span></div>
+  <div class="section-title">选择日期<span class="hint">带金点 = 有图集</span></div>
   <div class="day-grid" id="dayGrid"></div>
 
   <div class="collection" id="collection">
@@ -216,7 +216,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
     <div id="collBody"></div>
   </div>
 
-  <footer>山图集 · 历史上的今天</footer>
+  <footer>山师图集 · 历史上的今天</footer>
 </div>
 
 <script>
@@ -235,7 +235,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
     var md = todayMd();
     var c = INDEX[md] ? INDEX[md].count : 0;
     document.getElementById('todayMeta').textContent =
-      c>0 ? ('历年今日共 '+c+' 张 · '+INDEX[md].years.length+' 个年份') : '这一天暂无山图';
+      c>0 ? ('历年今日共 '+c+' 张 · '+INDEX[md].years.length+' 个年份') : '这一天暂无图集';
     document.getElementById('todayRead').onclick = function(e){ e.preventDefault(); showCollection(md); };
     buildMonthNav(); renderGrid();
   }
@@ -274,12 +274,12 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
 
   function showCollection(md){
     var coll=document.getElementById('collection'); coll.classList.add('show');
-    document.getElementById('collTitle').textContent = md.replace('-','月')+'日 · 历年山图';
+    document.getElementById('collTitle').textContent = md.replace('-','月')+'日 · 历年图集';
     var body=document.getElementById('collBody');
     body.innerHTML='<div class="loading">加载中…</div>';
     window.scrollTo({top:0,behavior:'smooth'});
     var info=INDEX[md];
-    if(!info){ body.innerHTML='<div class="loading">这一天暂无山图</div>'; return; }
+    if(!info){ body.innerHTML='<div class="loading">这一天暂无图集</div>'; return; }
     var html='';
     var years=info.years;
     years.forEach(function(y){
@@ -312,10 +312,10 @@ def create_notify(month, day, images, years):
     home = SITE_URL
     now = today.strftime("%Y-%m-%d %H:%M:%S")
     notify = (
-        f"## 🏔 山图集 {month}月{day}日\n"
-        f"历年今日共 {len(images)} 张山图，覆盖 {len(years)} 个年份。\n\n"
+        f"## 🏔 山师图集 {month}月{day}日\n"
+        f"历年今日共 {len(images)} 张图集，覆盖 {len(years)} 个年份。\n\n"
         f"![封面]({cover})\n\n"
-        f"📖 [查看今日山图]({home})\n"
+        f"📖 [查看今日图集]({home})\n"
         f"⏰ 生成时间 {now}"
     )
     (RESULT_DIR / "notify.txt").write_text(notify, encoding="utf-8")
@@ -325,7 +325,7 @@ def create_notify(month, day, images, years):
 # ===================== 主程序 =====================
 def main():
     print("=" * 20)
-    print("山图集「历史上的今天」")
+    print("山师图集「历史上的今天」")
     print("=" * 20)
 
     init_dirs()
@@ -373,7 +373,7 @@ def main():
         create_notify(t.month, t.day, images, years)
         (RESULT_DIR / "status.txt").write_text("FOUND", encoding="utf-8")
     else:
-        print("今天无山图")
+        print("今天无图集")
         (RESULT_DIR / "status.txt").write_text("", encoding="utf-8")
 
     print("=" * 20)
