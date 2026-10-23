@@ -216,7 +216,9 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
     <div id="collBody"></div>
   </div>
 
-  <footer>山师图集 · 历史上的今天</footer>
+  <footer>
+    <div>数据区间 <span id="footRange"></span></div>
+  </footer>
 </div>
 
 <script>
@@ -237,6 +239,20 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
     document.getElementById('todayMeta').textContent =
       c>0 ? ('历年今日共 '+c+' 张 · '+INDEX[md].years.length+' 个年份') : '这一天暂无图集';
     document.getElementById('todayRead').onclick = function(e){ e.preventDefault(); showCollection(md); };
+
+    // 底部数据区间：统计 INDEX 中覆盖的最小/最大年份
+    var minY=9999, maxY=0;
+    for (var k in INDEX) {
+      var ys = INDEX[k].years || [];
+      for (var i=0;i<ys.length;i++) {
+        if (ys[i] < minY) minY = ys[i];
+        if (ys[i] > maxY) maxY = ys[i];
+      }
+    }
+    if (maxY > 0) {
+      document.getElementById('footRange').textContent = minY + ' 年 ~ ' + maxY + ' 年';
+    }
+
     buildMonthNav(); renderGrid();
   }
 
