@@ -199,8 +199,13 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
   .day-cell .dot-ind { position:absolute; top:6px; right:6px; width:5px; height:5px; border-radius:50%; background:var(--accent); }
   .day-cell.empty { background:transparent; border-color:transparent; cursor:default; }
   .day-cell.no-data { opacity:.35; cursor:default; }
-  .day-cell.today { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  /* 今天：淡金细圈，只作"今天在哪"的定位参考，不抢视觉 */
+  .day-cell.today { border-color:rgba(212,162,90,.42); }
   .day-cell.today .d { color:var(--accent); }
+  /* 选中：当前正在看的那天，实心高亮。写在 .today 之后，同时命中时以选中为准 */
+  .day-cell.selected { border-color:var(--accent); background:rgba(212,162,90,.13);
+    box-shadow:0 0 0 1.5px var(--accent),0 4px 14px rgba(212,162,90,.20); }
+  .day-cell.selected .d { color:var(--accent); }
   .collection { display:none; }
   .collection.show { display:block; }
   .coll-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
@@ -257,6 +262,7 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
 (function(){
   var INDEX = __INDEX_JSON__;
   var curMonth = null;
+  var curSelected = null;   // 当前正在查看的 MM-DD
 
   /* ===== 农历算法（1900-2100） ===== */
   var LUNAR_INFO = [
@@ -444,18 +450,31 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
         var h = getHoliday(year, curMonth+1, day);
         if(h){ var tag=document.createElement('span'); tag.className='holiday-tag '+(h==='休'?'rest':'work'); tag.textContent=h; cell.appendChild(tag); }
         if(curMonth===t.getMonth() && day===t.getDate()) cell.classList.add('today');
+        cell.setAttribute('data-md', md);
+        if(md===curSelected) cell.classList.add('selected');
         if(has) cell.onclick=function(){ showCollection(md); };
         grid.appendChild(cell);
       })(d);
     }
   }
 
+  function syncSelection(){
+    var cells = document.getElementById('dayGrid').children;
+    for (var i=0;i<cells.length;i++){
+      var md = cells[i].getAttribute('data-md');
+      cells[i].classList.toggle('selected', !!md && md===curSelected);
+    }
+  }
+
   function showCollection(md){
+    curSelected = md;
+    syncSelection();
     var coll=document.getElementById('collection'); coll.classList.add('show');
     document.getElementById('collTitle').textContent = md.replace('-','月')+'日 · 历年图集';
+    document.getElementById('collBack').onclick=function(){ curSelected=null; syncSelection(); coll.classList.remove('show'); window.scrollTo({top:0,behavior:'smooth'}); };
     var body=document.getElementById('collBody');
     body.innerHTML='<div class="loading">加载中…</div>';
-    window.scrollTo({top:0,behavior:'smooth'});
+    // 不再强制 window.scrollTo(top:0)：点日期时页面停在原处，交给金圈做反馈
     var info=INDEX[md];
     if(!info){ body.innerHTML='<div class="loading">这一天暂无图集</div>'; return; }
     var html='';
@@ -471,7 +490,6 @@ CALENDAR_TEMPLATE = r"""<!DOCTYPE html>
       html+='</div>';
     });
     body.innerHTML=html;
-    document.getElementById('collBack').onclick=function(){ coll.classList.remove('show'); window.scrollTo({top:0,behavior:'smooth'}); };
   }
 
   init();
