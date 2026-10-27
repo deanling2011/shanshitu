@@ -49,24 +49,39 @@ def init_dirs():
 # ===================== PDF 解析 =====================
 def analyze_pdf():
     """
-    扫描整个 PDF，返回 md_map: {(month, day): [(year, page_index), ...]}
-    每页第一个日期决定该页归属（年、月、日），按页面顺序排列。
+    扫描整个 PDF，返回 md_map: {(month, day): [(year, [page_index, ...]), ...]}
+
+    归属规则：
+      - 有日期文字的页 → 新建一条微博条目（该页为文字说明页）。
+      - 无日期但含图片的页（如纯照片页、紧跟的"注"说明页）→ 归属到
+        「紧前一条」微博条目，作为附加图片页，直到遇到下一个日期文字为止。
+      这样一条配图微博可能对应多页：文字页 + 若干图片页，切图时全部保留。
     """
     doc = pymupdf.open(PDF_PATH)
     md_map = {}
+    last_pages = None  # 最近一条微博的图片页列表引用（用于追加无日期图片页）
     for i, page in enumerate(doc):
         text = page.get_text()
         dates = DATE_PATTERN.findall(text)
-        if not dates:
-            continue
-        y, m, d = dates[0]
-        year = int(y)
-        month = int(m)
-        day = int(d)
-        key = (month, day)
-        if key not in md_map:
-            md_map[key] = []
-        md_map[key].append((year, i))
+        if dates:
+            y, m, d = dates[0]
+            year = int(y)
+            month = int(m)
+            day = int(d)
+            key = (month, day)
+            if key not in md_map:
+                md_map[key] = []
+            pages = [i]
+            md_map[key].append((year, pages))
+            last_pages = pages
+        else:
+            # 无日期：若该页含图片，则挂到「紧前一条」微博的图片页列表末尾
+            if last_pages is None:
+                continue
+            imgs = page.get_images(full=True)
+            if not imgs:
+                continue
+            last_pages.append(i)
     doc.close()
     return md_map
 
@@ -82,26 +97,29 @@ def build_monthday(md_key, md_map, doc):
     """
     切某个月日的图，返回 (图片文件名列表, 年份列表)。
     doc 为 None 时只统计（用于通知）。
+
+    每条微博可能对应多页（文字页 + 图片页），每页各切一张，连续编号。
     """
     month, day = md_key
-    entries = md_map[md_key]  # [(year, page_index), ...]
+    entries = md_map[md_key]  # [(year, [page_index, ...]), ...]
     folder = HISTORY_DIR / f"{month:02d}-{day:02d}"
     folder.mkdir(exist_ok=True)
 
     year_counter = {}
     images = []
     years_seen = []
-    for year, page_idx in entries:
-        year_counter[year] = year_counter.get(year, 0) + 1
-        seq = year_counter[year]
-        name = f"{month:02d}-{day:02d}-{year}-{seq:03d}.jpg"
-        out = folder / name
-        if doc is not None:
-            if not out.exists():
-                cut_page_to_jpg(doc, page_idx, out)
-        images.append(name)
-        if year not in years_seen:
-            years_seen.append(year)
+    for year, page_idxs in entries:
+        for page_idx in page_idxs:
+            year_counter[year] = year_counter.get(year, 0) + 1
+            seq = year_counter[year]
+            name = f"{month:02d}-{day:02d}-{year}-{seq:03d}.jpg"
+            out = folder / name
+            if doc is not None:
+                if not out.exists():
+                    cut_page_to_jpg(doc, page_idx, out)
+            images.append(name)
+            if year not in years_seen:
+                years_seen.append(year)
 
     return images, years_seen
 
