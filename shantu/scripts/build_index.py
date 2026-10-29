@@ -47,48 +47,147 @@ def init_dirs():
 
 
 # ===================== PDF 解析 =====================
+# 日期出现在文本块「开头」才算新微博条目；出现在「（注：...）」等句子中间的
+# 日期只是被提及，不能作为分条依据。
+BLOCK_DATE_RE = re.compile(r"^\s*(\d{4})\s*年\s*(\d+)\s*月\s*(\d+)\s*日")
+
+
+def _split_page_segments(page):
+    """
+    把一页 PDF 按「日期块」切成若干纵向片段，用于一页含多条不同日期微博的情况
+    （例如 10-29 页下半部分其实是 11-03 的一条配图微博）。
+
+    返回 [(year, month, day, clip_or_None, text), ...]
+      - clip 为 None 表示整页切图（该页只属于一个日期）
+      - 否则 clip = (x0, y0, x1, y1)（PDF 坐标，单位 pt）
+      - text 为该片段自己的文字（用于判断"配有照片"注解归属）
+    没有以日期开头的文本块时返回 []。
+    """
+    marks = []
+    blocks = [(b[1], b[3], b[4] or "") for b in page.get_text("blocks")]
+    for y0, y1, txt in blocks:
+        m = BLOCK_DATE_RE.match(txt)
+        if m:
+            marks.append((y0, y1, int(m.group(1)), int(m.group(2)), int(m.group(3))))
+    if not marks:
+        return []
+    marks.sort()  # PDF 文本块顺序可能被页脚等打乱，按 y 排序
+
+    uniq = []
+    for _, _, y, mo, d in marks:
+        if (y, mo, d) not in uniq:
+            uniq.append((y, mo, d))
+    if len(uniq) <= 1:
+        _, _, y, mo, d = marks[0]
+        return [(y, mo, d, None, page.get_text())]
+
+    # 收集所有内容（文本块 + 图片）的纵向范围，用于计算切分边界
+    contents = [(y0, y1) for y0, y1, txt in blocks if txt.strip()]
+    for img in page.get_images(full=True):
+        for r in page.get_image_rects(img[0]):
+            contents.append((r.y0, r.y1))
+
+    page_w = page.rect.width
+    page_h = page.rect.height
+    pad = 12.0
+
+    # 相邻两个日期块之间的边界 = (上一段内容底部 + 下一个日期块顶部) / 2
+    bounds = []
+    for k in range(1, len(marks)):
+        next_top = marks[k][0]
+        prev_bottom = max([y1 for y0, y1 in contents if y1 <= next_top] or [next_top - pad * 2])
+        bounds.append((prev_bottom + next_top) / 2.0)
+
+    segments = []
+    for k, (m_y0, m_y1, y, mo, d) in enumerate(marks):
+        top = 0.0 if k == 0 else bounds[k - 1]
+        if k < len(bounds):
+            bottom = bounds[k]
+        else:  # 最后一段：切到内容底部，避免大片空白
+            bottom = max([y1 for y0, y1 in contents if y1 >= top] or [m_y1]) + pad
+            bottom = min(bottom, page_h)
+        if bottom - top < 20:  # 太小视为页脚/页码等噪声
+            continue
+        seg_text = "\n".join(txt for y0, y1, txt in blocks if top <= y0 < bottom)
+        segments.append((y, mo, d, (0.0, top, page_w, bottom), seg_text))
+    return segments
+
+
 def analyze_pdf():
     """
-    扫描整个 PDF，返回 md_map: {(month, day): [(year, [page_index, ...]), ...]}
+    扫描整个 PDF，返回 md_map: {(month, day): [(year, [segment, ...]), ...]}
+    segment = (page_index, clip_or_None)
 
     归属规则：
-      - 有日期文字的页 → 新建一条微博条目（该页为文字说明页）。
+      - 有日期文字的页 → 新建一条微博条目（该页该片段为文字说明页）。
+      - 一页含多条不同日期的微博（上半页 A 日期、下半页 B 日期）→ 纵向切开，
+        各自归属自己的日期，不再把后面的日期吞进前一个日期。
       - 无日期但含图片的页（如纯照片页、紧跟的"注"说明页）→ 归属到
         「紧前一条」微博条目，作为附加图片页，直到遇到下一个日期文字为止。
-      这样一条配图微博可能对应多页：文字页 + 若干图片页，切图时全部保留。
+        若紧前一条没提到"配图/配有照片"，则在同一页的条目里往前找提到的那条
+        （例如第75页上半是"取名纸照片"的注解，下半又挤了 01-14 一条，
+        照片页应归前者而不是 01-14）。
     """
     doc = pymupdf.open(PDF_PATH)
     md_map = {}
-    last_pages = None  # 最近一条微博的图片页列表引用（用于追加无日期图片页）
+    last_pages = None    # 最近一条微博的片段列表引用（用于追加无日期图片页）
+    page_entries = []    # 最近一个文字页上的条目 [(片段列表, 归一化文本), ...]
+
+    def norm(s):
+        return re.sub(r"\s+", "", s or "")
+
     for i, page in enumerate(doc):
-        text = page.get_text()
-        dates = DATE_PATTERN.findall(text)
-        if dates:
-            y, m, d = dates[0]
-            year = int(y)
-            month = int(m)
-            day = int(d)
-            key = (month, day)
-            if key not in md_map:
-                md_map[key] = []
-            pages = [i]
-            md_map[key].append((year, pages))
-            last_pages = pages
+        segs = _split_page_segments(page)
+        if segs:
+            page_entries = []
+            # 相邻同日期片段合并为同一条微博，保留条目数语义
+            groups = []
+            for y, mo, d, clip, txt in segs:
+                if groups and groups[-1][0] == (y, mo, d):
+                    groups[-1][1].append((i, clip))
+                    groups[-1][2] += "\n" + txt
+                else:
+                    groups.append([(y, mo, d), [(i, clip)], txt])
+            for (y, mo, d), seg_list, txt in groups:
+                key = (mo, d)
+                md_map.setdefault(key, []).append((y, seg_list))
+                last_pages = seg_list
+                page_entries.append((seg_list, norm(txt)))
         else:
-            # 无日期：若该页含图片，则挂到「紧前一条」微博的图片页列表末尾
+            # 兼容：日期不在文本块开头时，沿用全文首个日期（整页归属）
+            text = page.get_text()
+            dates = DATE_PATTERN.findall(text)
+            if dates:
+                y, m, d = dates[0]
+                key = (int(m), int(d))
+                seg_list = [(i, None)]
+                md_map.setdefault(key, []).append((int(y), seg_list))
+                last_pages = seg_list
+                page_entries = [(seg_list, norm(text))]
+                continue
+            # 无日期：若该页含图片，则挂到「紧前一条」微博的片段列表末尾
             if last_pages is None:
                 continue
-            imgs = page.get_images(full=True)
-            if not imgs:
+            if not page.get_images(full=True):
                 continue
-            last_pages.append(i)
+            target = None
+            for seg_list, txt in reversed(page_entries):
+                if "配有照片" in txt or "配图" in txt:
+                    target = seg_list
+                    break
+            if target is None:
+                target = last_pages
+            target.append((i, None))
     doc.close()
     return md_map
 
 
-def cut_page_to_jpg(doc, page_index, out_path, dpi=180):
+def cut_page_to_jpg(doc, page_index, out_path, dpi=180, clip=None):
     page = doc[page_index]
-    pix = page.get_pixmap(dpi=dpi)
+    if clip:
+        pix = page.get_pixmap(dpi=dpi, clip=pymupdf.Rect(*clip))
+    else:
+        pix = page.get_pixmap(dpi=dpi)
     pix.save(str(out_path))
     return out_path
 
@@ -101,22 +200,22 @@ def build_monthday(md_key, md_map, doc):
     每条微博可能对应多页（文字页 + 图片页），每页各切一张，连续编号。
     """
     month, day = md_key
-    entries = md_map[md_key]  # [(year, [page_index, ...]), ...]
+    entries = md_map[md_key]  # [(year, [(page_index, clip), ...]), ...]
     folder = HISTORY_DIR / f"{month:02d}-{day:02d}"
     folder.mkdir(exist_ok=True)
 
     year_counter = {}
     images = []
     years_seen = []
-    for year, page_idxs in entries:
-        for page_idx in page_idxs:
+    for year, segments in entries:
+        for page_idx, clip in segments:
             year_counter[year] = year_counter.get(year, 0) + 1
             seq = year_counter[year]
             name = f"{month:02d}-{day:02d}-{year}-{seq:03d}.jpg"
             out = folder / name
             if doc is not None:
                 if not out.exists():
-                    cut_page_to_jpg(doc, page_idx, out)
+                    cut_page_to_jpg(doc, page_idx, out, clip=clip)
             images.append(name)
             if year not in years_seen:
                 years_seen.append(year)
